@@ -40,6 +40,10 @@ Emmy is used only to load the IR (`Graph.from_dict`). The IR-to-PTX lowering is 
    memoized per scope.
 4b. **Addressing.** An index becomes a base register plus an immediate offset, and the
    peephole merges neighbouring aligned loads into `.v2`/`.v4`.
+4c. **Lane sharing.** In a key loop, statements that depend on the key but not on the
+   innermost (lane) axes, such as attention's q.k dot products, are computed once per group of
+   G adjacent lanes: lane i computes key chunk*G + i, and `shfl.sync.idx` hands the results to
+   the group (`kernelc/laneshare.py`). `KERNELC_LANE_SHARE=0` turns it off.
 5. **Loops.** If the trip count is the same for every thread (this is also proved when `start`
    is a Tile axis with a known range), the loop is unrolled fully or 2/4/8 copies per trip, with
    the induction variable as a constant or `i + k*step`. Otherwise it becomes a bottom-tested

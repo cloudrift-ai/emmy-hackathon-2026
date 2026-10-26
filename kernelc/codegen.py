@@ -30,7 +30,7 @@ from dataclasses import dataclass
 
 from emmy.compiler.ir.expr import BinaryExpr, Literal
 
-from . import mathlib
+from . import laneshare, mathlib
 from .arith import Arith
 from .loader import KernelSource
 from .peephole import vectorize_loads
@@ -133,6 +133,7 @@ class KernelCompiler:
         self.ranges: dict[str, tuple[int, int]] = {}  # register -> [lo, hi] of a Tile axis value
         self.offsets: dict[str, tuple[Val, int]] = {}  # register -> (base, constant)
         self.divisor: dict[str, int] = {}  # register -> known divisor of its value
+        self.lane_plans: dict[int, laneshare.Plan] = {}
         self.bufs: dict[str, Buffer] = {}
         self.module_decls: list[str] = []
         self.exit_label = self.em.new_label("exit")
@@ -587,7 +588,82 @@ class KernelCompiler:
                     v = ar.binop("/", gid, imm_int(st))
                     self.env[axis.name] = v if i == 0 else ar.binop("%", v, imm_int(e))
                 self.ranges[self.env[axis.name].text] = (0, e - 1)
+            self.tile_t = t
+            if n <= INT32_MAX and not s.aux_threads and os.environ.get("KERNELC_LANE_SHARE") != "0":
+                self._plan_lane_sharing(s, extents, c, raster)
             self.lower_body(s.body)
+
+    def _plan_lane_sharing(self, s, extents, block: int, raster) -> None:
+        readonly = {n for n, b in self.bufs.items() if b.readonly or b.space == "literal"}
+        axes = [(a.name, e) for a, e in zip(s.axes, extents)]
+        body = list(s.body)
+        for i, st in enumerate(body):
+            if kind(st) != "Loop":
+                continue
+            p = laneshare.plan(st, axes, body[:i], readonly, block)
+            if p is None or (raster is not None and set(p.lane_axes) & {axes[k][0] for k in raster}):
+                continue
+            self.lane_plans[id(st)] = p
+            log.info("%s: loop %s: %d lanes share %d of %d statements, %d values shuffled per key",
+                     self.src.name, st.axis.name, p.group, len(p.distributed), len(st.body), len(p.interface))
+
+    def _lower_lane_shared(self, s, p: laneshare.Plan) -> None:
+        """Lane i computes the distributed part for key chunk*G + i; then for each key of the
+        chunk every lane takes those values by shuffle and runs the rest of the body."""
+        ar, em = self.ar, self.em
+        self._seed_accumulators(s.body, s.seed)
+        self._rehome_accumulators(s.body)
+        G, key, body, dist = p.group, s.axis.name, list(s.body), set(p.distributed)
+        lane_g = ar.binop("&", self.tile_t, imm_int(G - 1))
+        base = ar.sub(ar.binop("&", self.tile_t, imm_int(31)), lane_g)
+        mask = ar.reg("u32")
+        em.ins("activemask.b32", mask.text)
+        em.comment(f"for {key} in 0..{p.chunks * G + p.tail}: {G} lanes share the work of {len(dist)} statements")
+
+        def chunk(cbase: Val, keys: int, last_key: int | None) -> None:
+            shared = {}
+            with self.scope():
+                k = ar.add(cbase, lane_g)
+                if last_key is not None:  # tail: lanes past the last key compute a valid, unused key
+                    k = ar.binop("min", k, imm_int(last_key))
+                self.env[key] = k
+                for i in sorted(dist):
+                    self.lower(body[i])
+                for n in p.interface:
+                    v = ar.materialize(self.lookup(n))
+                    if v.ty not in ("f32", "s32", "u32"):
+                        raise NotImplementedError(f"lane sharing: {n!r} is {v.ty}, only 32-bit values are shuffled")
+                    shared[n] = v
+            for j in range(keys):
+                if j == 1:
+                    self.quiet += 1
+                with self.scope():
+                    self.env[key] = self._offset_val(cbase, j, imm_int(1))
+                    src = ar.materialize(ar.add(base, imm_int(j)))
+                    for n, v in shared.items():
+                        r = ar.reg(v.ty)
+                        em.ins("shfl.sync.idx.b32", r.text, v.text, src.text, "0x1f", mask.text)
+                        self.env[n] = r
+                    for i, st in enumerate(body):
+                        if i not in dist:
+                            self.lower(st)
+            if keys > 1:
+                self.quiet -= 1
+
+        if p.chunks:
+            top = em.new_label(f"{key}_share")
+            c = ar.reg("s32")
+            ar.mov(c, imm_int(0))
+            em.label(top)
+            with self.scope():
+                cbase = ar.mul(c, imm_int(G))
+                self.divisor[cbase.text] = G
+                chunk(cbase, G, None)
+            ar.mov(c, ar.add(c, imm_int(1)))
+            em.pred_ins(ar.cmp("<", c, imm_int(p.chunks)).text, "bra", top)
+        if p.tail:
+            with self.scope():
+                chunk(imm_int(p.chunks * G), p.tail, p.chunks * G + p.tail - 1)
 
     def _raster_plan(self, s, extents):
         """Grouped CTA rasterization of the (m, n) block axes (the standard threadblock swizzle)."""
@@ -758,6 +834,10 @@ class KernelCompiler:
             self.memo.pop()
 
     def _lower_Loop(self, s) -> None:
+        p = self.lane_plans.pop(id(s), None)
+        if p is not None:
+            self._lower_lane_shared(s, p)
+            return
         self._seed_accumulators(s.body, s.seed)
         self._rehome_accumulators(s.body)
         trips = static_extent(s.axis)
