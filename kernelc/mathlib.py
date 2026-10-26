@@ -15,7 +15,7 @@ import math
 from collections.abc import Callable
 
 from .arith import Arith
-from .ptx import Val, imm_f32, imm_int
+from .ptx import Val, imm_f32, imm_f64, imm_int
 
 C = imm_f32
 
@@ -73,20 +73,46 @@ def _exp_reduced(ar: Arith, n: Val, r: Val) -> Val:
     return ar.mul(ar.mul(p, pow2i(ar, n1)), pow2i(ar, n2))
 
 
+def _keep_nan(ar: Arith, x: Val, y: Val) -> Val:
+    """min/max in the input clamp drop NaN; restore it."""
+    if x.is_const:
+        return y
+    return ar.select(ar.isnan(x), x, y)
+
+
 def exp(ar: Arith, x: Val) -> Val:
-    """e^x = 2^n * e^r with n = rint(x / ln2), r = x - n*ln2 (Cody-Waite)."""
-    x = ar.fmin(ar.fmax(x, C(-104.0)), C(89.0))  # e^-104 underflows, e^89 overflows
-    n = ar.unary("cvt.rni.f32", ar.mul(x, C(LOG2E)))
-    r = ar.fma(n, C(-EXP_LN2_HI), x)
+    """e^x = 2^n * e^r with n = rint(x / ln2), r = x - n*ln2 (Cody-Waite).
+    Under fast_math, ex2.approx.ftz(x*log2e)."""
+    if ar.fast_math:
+        return ar.unary("ex2.approx.ftz", ar.mul(x, C(LOG2E)))
+    xc = ar.fmin(ar.fmax(x, C(-104.0)), C(89.0))  # e^-104 underflows, e^89 overflows
+    n = ar.unary("cvt.rni.f32", ar.mul(xc, C(LOG2E)))
+    r = ar.fma(n, C(-EXP_LN2_HI), xc)
     r = ar.fma(n, C(-EXP_LN2_LO), r)
-    return _exp_reduced(ar, n, r)
+    return _keep_nan(ar, x, _exp_reduced(ar, n, r))
 
 
 def exp2(ar: Arith, x: Val) -> Val:
     """2^x = 2^n * e^((x-n)*ln2); x - n is exact."""
-    x = ar.fmin(ar.fmax(x, C(-150.0)), C(129.0))
-    n = ar.unary("cvt.rni.f32", x)
-    return _exp_reduced(ar, n, ar.mul(ar.sub(x, n), C(LN2)))
+    if ar.fast_math:
+        return ar.unary("ex2.approx.ftz", x)
+    xc = ar.fmin(ar.fmax(x, C(-150.0)), C(129.0))
+    n = ar.unary("cvt.rni.f32", xc)
+    return _keep_nan(ar, x, _exp_reduced(ar, n, ar.mul(ar.sub(xc, n), C(LN2))))
+
+
+def reciprocal(ar: Arith, x: Val) -> Val:
+    return ar.unary("rcp.approx.ftz" if ar.fast_math else "rcp.rn", x)
+
+
+def sqrt(ar: Arith, x: Val) -> Val:
+    return ar.unary("sqrt.approx.ftz" if ar.fast_math else "sqrt.rn", x)
+
+
+def rsqrt(ar: Arith, x: Val) -> Val:
+    if ar.fast_math:
+        return ar.unary("rsqrt.approx.ftz", x)
+    return ar.unary("rcp.rn", ar.unary("sqrt.rn", x))
 
 
 def expm1(ar: Arith, x: Val) -> Val:
@@ -286,10 +312,10 @@ FLOAT_OPS: dict[str, Callable] = {
     "multiply": lambda ar, a, b: ar.mul(a, b),
     "divide": lambda ar, a, b: ar.div(a, b),
     "true_divide": lambda ar, a, b: ar.div(a, b),
-    "floor_divide": lambda ar, a, b: ar.unary("cvt.rmi.f32", ar.div(a, b)),
+    "floor_divide": lambda ar, a, b: ar.floor_div(a, b),
     "remainder": lambda ar, a, b: ar.fmod(a, b),
     "mod": lambda ar, a, b: ar.fmod(a, b),
-    "fmod": lambda ar, a, b: ar.sub(a, ar.mul(ar.unary("cvt.rzi.f32", ar.div(a, b)), b)),
+    "fmod": lambda ar, a, b: ar.fmod_c(a, b),
     "maximum": lambda ar, a, b: ar.fmax(a, b),
     "minimum": lambda ar, a, b: ar.fmin(a, b),
     "fmax": lambda ar, a, b: ar.fmax(a, b),
@@ -304,9 +330,9 @@ FLOAT_OPS: dict[str, Callable] = {
     "abs": lambda ar, x: ar.unary("abs", x),
     "absolute": lambda ar, x: ar.unary("abs", x),
     "square": lambda ar, x: ar.mul(x, x),
-    "reciprocal": lambda ar, x: ar.unary("rcp.rn", x),
-    "sqrt": lambda ar, x: ar.unary("sqrt.rn", x),
-    "rsqrt": lambda ar, x: ar.unary("rcp.rn", ar.unary("sqrt.rn", x)),
+    "reciprocal": reciprocal,
+    "sqrt": sqrt,
+    "rsqrt": rsqrt,
     "relu": lambda ar, x: ar.fmax(x, C(0.0)),
     "sign": _sign,
     "floor": lambda ar, x: ar.unary("cvt.rmi.f32", x),
@@ -368,12 +394,40 @@ INT_OPS: dict[str, str] = {
 }
 
 
+# f64 runs natively; anything else on f64 raises
+F64_OPS: dict[str, Callable] = {
+    "add": lambda ar, a, b: ar.add(a, b),
+    "subtract": lambda ar, a, b: ar.sub(a, b),
+    "multiply": lambda ar, a, b: ar.mul(a, b),
+    "divide": lambda ar, a, b: ar.div(a, b),
+    "true_divide": lambda ar, a, b: ar.div(a, b),
+    "maximum": lambda ar, a, b: ar.fmax(a, b),
+    "minimum": lambda ar, a, b: ar.fmin(a, b),
+    "negative": lambda ar, x: ar.unary("neg", x, "f64"),
+    "abs": lambda ar, x: ar.unary("abs", x, "f64"),
+    "absolute": lambda ar, x: ar.unary("abs", x, "f64"),
+    "square": lambda ar, x: ar.mul(x, x),
+    "sqrt": lambda ar, x: ar.unary("sqrt.rn", x, "f64"),
+    "reciprocal": lambda ar, x: ar.unary("rcp.rn", x, "f64"),
+    "relu": lambda ar, x: ar.fmax(x, imm_f64(0.0)),
+    "where": lambda ar, c, a, b: ar.select(_truthy(ar, c), a, b),
+    **{k: FLOAT_OPS[k] for k in ("greater", "less", "greater_equal", "less_equal", "equal", "not_equal")},
+}
+
+
 def apply(ar: Arith, name: str, args: list[Val]) -> Val:
-    """Lower one elementwise op. Integer arithmetic stays integral; everything else runs in f32."""
+    """Lower one elementwise op. Integer stays integral, f64 stays f64, the rest runs in f32."""
     if name in INT_OPS and args and all(a.is_int for a in args):
         return ar.binop(INT_OPS[name], args[0], args[1])
     if name in ("copy", "pad") and len(args) == 1:
         return args[0]
+    if any(a.ty == "f64" for a in args):
+        fn = F64_OPS.get(name)
+        if fn is None:
+            raise NotImplementedError(f"elementwise op {name!r} on f64 is not supported (it would be computed in f32)")
+        if name == "where":
+            return fn(ar, args[0], ar.convert(args[1], "f64"), ar.convert(args[2], "f64"))
+        return fn(ar, *[ar.convert(a, "f64") for a in args])
     fn = FLOAT_OPS.get(name)
     if fn is None:
         raise NotImplementedError(f"elementwise op {name!r} is not supported")

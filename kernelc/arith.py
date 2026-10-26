@@ -16,7 +16,7 @@ import math
 
 import numpy as np
 
-from .ptx import INT_TYPES, Emitter, Val, f32_round, imm_f32, imm_int, imm_pred
+from .ptx import INT_TYPES, Emitter, Val, f32_round, imm_f32, imm_f64, imm_int, imm_pred
 
 _CMP = {"<": "lt", "<=": "le", ">": "gt", ">=": "ge", "==": "eq", "!=": "ne"}
 _PY_CMP = {
@@ -45,8 +45,10 @@ def _wrap32(n: int) -> int:
 
 
 class Arith:
-    def __init__(self, em: Emitter) -> None:
+    def __init__(self, em: Emitter, fast_math: bool = False) -> None:
         self.em = em
+        # fast_math: f32 add/sub/mul without .rn (lets ptxas fuse to fma) and div.full
+        self.fast_math = fast_math
 
     # ------------------------------------------------------------------ helpers
     def reg(self, ty: str) -> Val:
@@ -76,6 +78,8 @@ class Arith:
     def const(self, value, ty: str) -> Val:
         if ty == "f32":
             return imm_f32(value)
+        if ty == "f64":
+            return imm_f64(value)
         if ty == "pred":
             return imm_pred(bool(value))
         return imm_int(int(value), ty)
@@ -87,6 +91,8 @@ class Arith:
         if v.is_const:
             if ty == "f32":
                 return imm_f32(float(v.const))
+            if ty == "f64":
+                return imm_f64(float(v.const))
             if ty == "pred":
                 return imm_pred(bool(v.const))
             if ty in INT_TYPES:
@@ -152,7 +158,7 @@ class Arith:
                 "-": lambda: x - y,
                 "*": lambda: x * y,
                 "/": lambda: _c_div(x, y),
-                "//": lambda: x // y,
+                "//": lambda: _c_div(x, y),  # truncates, like the runtime div.s32
                 "%": lambda: _c_rem(x, y),
                 "<<": lambda: x << y,
                 ">>": lambda: x >> y,
@@ -228,6 +234,8 @@ class Arith:
             return self.fmod(a, b)
         r = self.reg(ty)
         opcode = {"+": "add.rn", "-": "sub.rn", "*": "mul.rn", "/": "div.rn", "min": "min", "max": "max"}[op]
+        if self.fast_math and ty == "f32":
+            opcode = {"+": "add", "-": "sub", "*": "mul", "/": "div.full"}.get(op, opcode)
         self.em.ins(f"{opcode}.{ty}", r.text, a.text, b.text)
         return r
 
@@ -246,6 +254,11 @@ class Arith:
 
     def fma(self, a: Val, b: Val, c: Val) -> Val:
         """a * b + c with a single rounding."""
+        if "f64" in (a.ty, b.ty, c.ty):
+            a, b, c = (self.materialize(self.convert(v, "f64")) if i == 0 else self.convert(v, "f64") for i, v in enumerate((a, b, c)))
+            r = self.reg("f64")
+            self.em.ins("fma.rn.f64", r.text, a.text, b.text, c.text)
+            return r
         a, b, c = (self.convert(v, "f32") for v in (a, b, c))
         if a.is_const and b.is_const and c.is_const:
             return imm_f32(float(np.float64(a.const) * np.float64(b.const) + np.float64(c.const)))
@@ -266,10 +279,65 @@ class Arith:
         self.em.ins(f"{opcode}.{ty}", r.text, a.text)
         return r
 
+    def fmod_c(self, a: Val, b: Val) -> Val:
+        """C fmod. The rounded quotient can be one off, which fma(-q, b, a) exposes exactly."""
+        a, b = self.convert(a, "f32"), self.convert(b, "f32")
+        q = self.unary("cvt.rzi.f32", self._exact_div(a, b))
+        r = self.fma(self.unary("neg", q), b, a)
+        sb = self._copysign(b, a)
+        over = self.logic("&&", self.cmp("!=", r, imm_f32(0.0)), self._sign_differs(r, a))
+        r = self.select(over, self.add_exact(r, sb), r)
+        under = self.cmp(">=", self.unary("abs", r), self.unary("abs", b))
+        return self.select(under, self.sub_exact(r, sb), r)
+
     def fmod(self, a: Val, b: Val) -> Val:
-        """numpy ``remainder`` for floats: the result takes the sign of the divisor."""
-        q = self.unary("cvt.rmi.f32", self.div(a, b))
-        r = self.sub(a, self.mul(q, b))
+        """numpy remainder: fmod shifted by b when its sign differs from b's."""
+        r = self.fmod_c(a, b)
+        b = self.convert(b, "f32")
+        shift = self.logic("&&", self.cmp("!=", r, imm_f32(0.0)), self._sign_differs(r, b))
+        return self.select(shift, self.add_exact(r, b), r)
+
+    def floor_div(self, a: Val, b: Val) -> Val:
+        """numpy floor_divide, as in npy_divmod."""
+        a, b = self.convert(a, "f32"), self.convert(b, "f32")
+        mod = self.fmod_c(a, b)
+        div = self._exact_div(self.sub_exact(a, mod), b)
+        adjust = self.logic("&&", self.cmp("!=", mod, imm_f32(0.0)), self._sign_differs(mod, b))
+        div = self.select(adjust, self.sub_exact(div, imm_f32(1.0)), div)
+        return self.unary("cvt.rni.f32", div)
+
+    # always .rn, even under fast_math
+    def _exact_div(self, a: Val, b: Val) -> Val:
+        r = self.reg("f32")
+        self.em.ins("div.rn.f32", r.text, self.materialize(a).text, b.text)
+        return r
+
+    def add_exact(self, a: Val, b: Val) -> Val:
+        r = self.reg("f32")
+        self.em.ins("add.rn.f32", r.text, self.materialize(a).text, b.text)
+        return r
+
+    def sub_exact(self, a: Val, b: Val) -> Val:
+        r = self.reg("f32")
+        self.em.ins("sub.rn.f32", r.text, self.materialize(a).text, b.text)
+        return r
+
+    def _copysign(self, mag: Val, sign: Val) -> Val:
+        m, s = self.reg("s32"), self.reg("s32")
+        self.em.ins("mov.b32", m.text, self.materialize(mag).text)
+        self.em.ins("mov.b32", s.text, self.materialize(sign).text)
+        m2 = self.binop("|", self.binop("&", m, imm_int(0x7FFFFFFF)), self.binop("&", s, imm_int(-0x80000000)))
+        r = self.reg("f32")
+        self.em.ins("mov.b32", r.text, self.materialize(m2).text)
+        return r
+
+    def _sign_differs(self, x: Val, y: Val) -> Val:
+        return self.logic("^", self.cmp("<", x, imm_f32(0.0)), self.cmp("<", y, imm_f32(0.0)))
+
+    def isnan(self, x: Val) -> Val:
+        r = self.reg("pred")
+        x = self.materialize(x)
+        self.em.ins(f"setp.nan.{x.ty}", r.text, x.text, x.text)
         return r
 
     # ------------------------------------------------------------- predicates

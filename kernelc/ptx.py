@@ -51,6 +51,10 @@ def imm_f32(x: float) -> Val:
     return Val(f32_hex(x), "f32", x)
 
 
+def imm_f64(x: float) -> Val:
+    return Val("0d%016X" % int(np.array(x, dtype=np.float64).view(np.uint64)), "f64", float(x))
+
+
 def imm_int(n: int, ty: str = "s32") -> Val:
     return Val(str(int(n)), ty, int(n))
 

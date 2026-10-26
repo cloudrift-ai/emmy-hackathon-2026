@@ -22,14 +22,21 @@ immediates or address offsets.
 
 from __future__ import annotations
 
+import logging
 import math
+import os
 from contextlib import contextmanager
 from dataclasses import dataclass
+
+from emmy.compiler.ir.expr import BinaryExpr, Literal
 
 from . import mathlib
 from .arith import Arith
 from .loader import KernelSource
-from .ptx import Emitter, Val, imm_f32, imm_int
+from .peephole import vectorize_loads
+from .ptx import INT_TYPES, Emitter, Val, imm_f32, imm_f64, imm_int
+
+log = logging.getLogger("kernelc")
 
 PTX_VERSION = "8.0"
 PTX_TARGET = "sm_89"
@@ -38,13 +45,16 @@ DEFAULT_BLOCK = 256  # Emmy's scalar-tier block size (Tile.block_threads is None
 UNROLL_BUDGET = 2048  # max IR leaf statements a fully unrolled ``unroll`` loop may emit
 SMALL_UNROLL_LEAVES = 64  # unflagged loops with a uniform trip count unroll fully up to this
 PARTIAL_UNROLL_LEAVES = 32  # max leaves in one trip of a partially unrolled loop
+INT32_MAX = 2**31 - 1
+GLOBAL_ALIGN = 16  # assumed base alignment of a global buffer (Emmy's float4 casts rely on it)
+FAST_MATH_MIN_RTOL = 1e-4
 
 # dtype name -> (bytes, ld/st type, register type the value lives in)
 DTYPES = {
     "f32": (4, "f32", "f32"),
     "f16": (2, "b16", "f32"),
     "bf16": (2, "b16", "f32"),
-    "f64": (8, "f64", "f32"),
+    "f64": (8, "f64", "f64"),
     "i32": (4, "s32", "s32"),
     "u32": (4, "u32", "s32"),
     "i64": (8, "s64", "s64"),
@@ -57,7 +67,7 @@ DTYPES = {
 }
 # Smem C types -> dtype names
 CTYPES = {"float": "f32", "__half": "f16", "__nv_bfloat16": "bf16", "int": "i32", "unsigned": "u32",
-          "unsigned long long": "u64", "double": "f64"}
+          "unsigned long long": "u64", "long long": "i64", "long": "i64", "double": "f64"}
 SWIZZLE_XOR = {"B128": (6, 0x7), "B64": (6, 0x3), "B32": (6, 0x1)}
 
 
@@ -72,6 +82,7 @@ class Buffer:
     offset: int = 0  # shared: byte offset of this slab inside ``symbol``
     readonly: bool = False
     literal: float | None = None
+    align: int = GLOBAL_ALIGN
 
     @property
     def esize(self) -> int:
@@ -111,18 +122,33 @@ class KernelCompiler:
     def __init__(self, src: KernelSource) -> None:
         self.src = src
         self.em = Emitter()
-        self.ar = Arith(self.em)
+        self.fast_math = self._decide_fast_math(src)
+        self.ar = Arith(self.em, fast_math=self.fast_math)
+        self.align: dict[str, int] = {}  # address register -> byte alignment
         self.env: dict[str, Val] = {}
         self.memo: list[dict] = [{}]
         self.mutable: set[str] = set()  # names whose register is updated in place
         self.owned: set[str] = set()  # register texts that belong to exactly one mutable name
         self.products: dict[str, tuple[Val, Val]] = {}  # register -> factors of the multiply that made it
         self.ranges: dict[str, tuple[int, int]] = {}  # register -> [lo, hi] of a Tile axis value
+        self.offsets: dict[str, tuple[Val, int]] = {}  # register -> (base, constant)
+        self.divisor: dict[str, int] = {}  # register -> known divisor of its value
         self.bufs: dict[str, Buffer] = {}
         self.module_decls: list[str] = []
         self.exit_label = self.em.new_label("exit")
-        self.block_threads = DEFAULT_BLOCK
+        self.block_threads = src.block or DEFAULT_BLOCK
         self.quiet = 0  # >0 while emitting the 2nd+ copy of an unrolled body (no IR comments)
+
+    @staticmethod
+    def _decide_fast_math(src: KernelSource) -> bool:
+        """On when meta.json's rtol >= 1e-4 (worst error is ~5e-6). KERNELC_FAST_MATH=0/1 overrides."""
+        forced = os.environ.get("KERNELC_FAST_MATH")
+        if forced in ("0", "1"):
+            log.info("%s: fast math %s (forced by KERNELC_FAST_MATH)", src.name, "on" if forced == "1" else "off")
+            return forced == "1"
+        on = src.rtol is not None and src.rtol >= FAST_MATH_MIN_RTOL
+        log.info("%s: fast math %s (rtol=%s, threshold %g)", src.name, "on" if on else "off", src.rtol, FAST_MATH_MIN_RTOL)
+        return on
 
     # ================================================================ driver
     def compile(self) -> str:
@@ -130,7 +156,11 @@ class KernelCompiler:
         written = {s.output for s in walk(body) if kind(s) == "Write"} | {s.dst for s in walk(body) if kind(s) == "ZeroPrologue"}
         tile = next((s for s in body if kind(s) == "Tile"), None)
         if tile is not None:
-            self.block_threads = (tile.block_threads or DEFAULT_BLOCK) + tile.aux_threads
+            self.block_threads = (tile.block_threads or self.src.block or DEFAULT_BLOCK) + tile.aux_threads
+        if self.src.block is not None and self.src.block != self.block_threads:
+            log.warning("%s: meta.json launches %d threads but the IR implies %d; using the launch's",
+                        self.src.name, self.src.block, self.block_threads)
+            self.block_threads = self.src.block
         self._plan_shared_memory(body)
         params = self._prologue(written)
         for s in body:
@@ -140,6 +170,8 @@ class KernelCompiler:
         return self._assemble(params)
 
     def _assemble(self, params: list[str]) -> str:
+        lines, merged = vectorize_loads(self.em.lines, self.align)
+        log.info("%s: merged %d groups of scalar loads into vector loads", self.src.name, merged)
         out = [
             "//",
             f"// {self.src.name}: generated by kernelc (Kernel IR -> PTX)",
@@ -156,7 +188,7 @@ class KernelCompiler:
             "{",
             *self.em.declarations(),
             "",
-            *self.em.lines,
+            *lines,
             "}",
             "",
         ]
@@ -185,7 +217,9 @@ class KernelCompiler:
                 symbol, offset = f"smem_{s.name}", 0
                 self.module_decls.append(f".shared .align {align} .b8 {symbol}[{size}];")
             shape = tuple(int(e) for e in s.extents)
-            self.bufs[s.name] = Buffer(s.name, "shared", shape, dt, symbol=symbol, offset=offset)
+            base_align = max_align if dynamic else align
+            self.bufs[s.name] = Buffer(s.name, "shared", shape, dt, symbol=symbol, offset=offset,
+                                       align=math.gcd(base_align, offset) if offset else base_align)
 
     def _prologue(self, written: set[str]) -> list[str]:
         em, ar = self.em, self.ar
@@ -208,7 +242,8 @@ class KernelCompiler:
         # constants that are not kernel parameters are inlined as literals
         for name, value in self.src.constants.items():
             if name not in self.bufs:
-                self.bufs[name] = Buffer(name, "literal", (1,), "f32", literal=value)
+                dt = "f64" if self.src.dtypes.get(name) == "f64" else "f32"
+                self.bufs[name] = Buffer(name, "literal", (1,), dt, literal=value)
         for buf in self.bufs.values():  # shared slab base addresses, computed where they dominate every use
             if buf.space == "shared":
                 buf.base = self.ar.add(self.special_symbol(buf.symbol), imm_int(buf.offset))
@@ -357,15 +392,108 @@ class KernelCompiler:
             v = self.expr(index[0])
             return ar.convert(v, "s32") if v.ty == "f32" else v
         shape = self.bufs[name].shape if name in self.bufs else ()
+        if len(shape) != len(index):
+            raise ValueError(f"buffer {name!r} has shape {shape} but is indexed with {len(index)} coordinates "
+                             "(an index is either one flat offset or one coordinate per dimension)")
         flat = imm_int(0)
-        if len(shape) == len(index):
-            for d, idx in enumerate(index):
-                stride = math.prod(shape[d + 1:])
-                flat = ar.add(flat, ar.mul(self.expr(idx), imm_int(stride)))
-        else:
-            for idx in index:
-                flat = ar.add(flat, self.expr(idx))
+        for d, idx in enumerate(index):
+            stride = math.prod(shape[d + 1:])
+            flat = ar.add(flat, ar.mul(self.expr(idx), imm_int(stride)))
         return flat
+
+    # -- affine addressing: base register + immediate offset ----------------------------------
+    def _affine(self, e):
+        """Split an index into (variable Expr or None, constant, gcd of the variable's multipliers)."""
+        k = kind(e)
+        if k == "Literal" and isinstance(e.value, int) and not isinstance(e.value, bool):
+            return None, int(e.value), 0
+        if k == "Var":
+            v = self.lookup(e.name)
+            if v.is_const and v.ty in INT_TYPES:
+                return None, int(v.const), 0
+            if v.text in self.offsets:
+                base, c = self.offsets[v.text]
+                name = f"{e.name}@base"
+                self.env[name] = base
+                return type(e)(name=name), c, self.divisor.get(base.text, 1)
+            return e, 0, self.divisor.get(v.text, 1)
+        if k == "BinaryExpr" and e.op in ("+", "-", "*"):
+            la, lc, lg = self._affine(e.left)
+            ra, rc, rg = self._affine(e.right)
+            if e.op == "*":
+                if la is None or ra is None:
+                    kk, (ne, c, g) = (lc, (ra, rc, rg)) if la is None else (rc, (la, lc, lg))
+                    if kk == 0 or ne is None:
+                        return None, c * kk, 0
+                    return BinaryExpr("*", ne, Literal(kk, "int")), c * kk, g * abs(kk)
+                return e, 0, 1
+            c = lc + rc if e.op == "+" else lc - rc
+            if la is None and ra is None:
+                return None, c, 0
+            if e.op == "+":
+                ne = la if ra is None else ra if la is None else BinaryExpr("+", la, ra)
+            else:
+                ne = la if ra is None else BinaryExpr("-", la if la is not None else Literal(0, "int"), ra)
+            return ne, c, math.gcd(lg, rg)
+        v = self.expr(e)
+        if v.is_const and v.ty in INT_TYPES:
+            return None, int(v.const), 0
+        return e, 0, 1
+
+    def split_index(self, name: str, index) -> tuple[Val | None, int, int]:
+        """flat_index as (variable part, constant offset, gcd)."""
+        if len(index) == 0:
+            return None, 0, 0
+        shape = self.bufs[name].shape if name in self.bufs else ()
+        if len(index) == 1:
+            terms = [(index[0], 1)]
+        elif len(shape) == len(index):
+            terms = [(idx, math.prod(shape[d + 1:])) for d, idx in enumerate(index)]
+        else:
+            raise ValueError(f"buffer {name!r} has shape {shape} but is indexed with {len(index)} coordinates "
+                             "(an index is either one flat offset or one coordinate per dimension)")
+        var_e, const, g = None, 0, 0
+        for e, stride in terms:
+            ne, c, ge = self._affine(e)
+            const += c * stride
+            if ne is not None:
+                term = ne if stride == 1 else BinaryExpr("*", ne, Literal(stride, "int"))
+                var_e = term if var_e is None else BinaryExpr("+", var_e, term)
+                g = math.gcd(g, ge * stride)
+        if var_e is None:
+            return None, const, 0
+        var = self.expr(var_e)
+        if var.ty == "f32":
+            var = self.ar.convert(var, "s32")
+        if var.is_const:
+            return None, const + int(var.const), 0
+        return var, const, max(g, 1)
+
+    def address_of(self, buf: "Buffer", var: Val | None, const: int, g: int, k: int = 0) -> str:
+        """[reg+imm] for element var + const + k, with one register per var per scope."""
+        if var is None:
+            return self.address(buf, imm_int(const), k)
+        es = buf.esize
+        key = ("addr", buf.name, var.text)
+        # current scope only: reusing an outer one keeps it live across loops and spills
+        reg = None if var.text in self.owned else self.memo[-1].get(key)
+        if reg is None:
+            if buf.space == "shared":
+                reg = self.ar.reg("s32")
+                self.em.ins("mad.lo.s32", reg.text, self.ar.materialize(var).text, str(es), self.ar.materialize(buf.base).text)
+            else:
+                wide = self.ar.reg("s64")
+                if var.ty in ("s64", "u64"):
+                    self.em.ins("mul.lo.s64", wide.text, var.text, str(es))
+                else:
+                    self.em.ins("mul.wide.s32", wide.text, self.ar.materialize(var).text, str(es))
+                reg = self.ar.reg("u64")
+                self.em.ins("add.s64", reg.text, buf.base.text, wide.text)
+            self.align[reg.text] = math.gcd(g * es, buf.align)
+            if var.text not in self.owned:
+                self.memo[-1][key] = reg
+        off = (const + k) * es
+        return f"[{reg.text}+{off}]" if off else f"[{reg.text}]"
 
     def swizzle(self, mode: str, flat: Val) -> Val:
         """Emmy's slab swizzle ``e ^ (((e >> shift) & mask) << 3)``."""
@@ -432,9 +560,11 @@ class KernelCompiler:
         ar, em = self.ar, self.em
         extents = [static_extent(a) for a in s.axes]
         n = math.prod(extents) if extents else 1
-        c = s.block_threads or DEFAULT_BLOCK
+        c = s.block_threads or self.src.block or DEFAULT_BLOCK
         em.comment(f"Tile[{', '.join(a.name for a in s.axes)}] (N={n}), {c} cells per CTA")
         tid, ctaid = self.special("%tid.x"), self.special("%ctaid.x")
+        if n > INT32_MAX:
+            tid, ctaid = ar.convert(tid, "s64"), ar.convert(ctaid, "s64")
         t = ar.binop("%", tid, imm_int(c)) if s.aux_threads else tid
         gid = ar.add(ar.mul(ctaid, imm_int(c)), t)
         if s.aux_threads or n % c:
@@ -528,11 +658,15 @@ class KernelCompiler:
                         if ident is None:
                             raise ValueError(f"Accum {st.name!r}: op {st.op.name!r} has no identity")
                         self.new_mutable(st.name, self.ar.const(ident, ty), ty)
-                elif kind(st) == "Cond":
-                    visit(st.body)
-                    visit(st.else_body)
+            # Accums nested in a Cond are not seeded, as in Emmy's Loop.render
 
         visit(body)
+
+    def _rehome_accumulators(self, body) -> None:
+        """Own every name a nested body accumulates into here, so the update survives the body."""
+        for st in walk(body):
+            if kind(st) == "Accum" and st.name in self.env and self.env[st.name].text not in self.owned:
+                self.mutable_reg(st.name)
 
     def _trip_count(self, start: Val, step: Val, bound: Val) -> int | None:
         """The loop's trip count when it is the same for every thread, else None.
@@ -580,21 +714,31 @@ class KernelCompiler:
         copies = self._unroll_factor(body, trips, flagged)
         if trips is not None and copies == trips:
             em.comment(f"  (unrolled x{trips})")
-            self._emit_copies(axis, [ar.add(start, ar.mul(imm_int(k), step)) for k in range(trips)], body)
+            self._emit_copies(axis, [self._offset_val(start, k, step) for k in range(trips)], body)
             return
         top, end = em.new_label(f"{axis}_top"), em.new_label(f"{axis}_end")
         i = ar.reg("s32")
         ar.mov(i, start)
+        if start.is_const and step.is_const:
+            self.divisor[i.text] = math.gcd(int(start.const), copies * int(step.const))
         if trips is None:
             em.pred_ins(ar.cmp(">=", i, bound).text, "bra", end)
         if copies > 1:
             em.comment(f"  ({trips} trips, {copies} copies per trip)")
         em.label(top)
         with self.scope():
+            # not folded into offsets: ptxas then hoists every copy's loads and spills
             self._emit_copies(axis, [ar.add(i, ar.mul(imm_int(k), step)) for k in range(copies)], body)
         ar.mov(i, ar.add(i, ar.mul(imm_int(copies), step)))
         em.pred_ins(ar.cmp("<", i, bound).text, "bra", top)
         em.label(end)
+
+    def _offset_val(self, base: Val, k: int, step: Val) -> Val:
+        """base + k*step, recorded as base plus a constant for addressing."""
+        v = self.ar.add(base, self.ar.mul(imm_int(k), step))
+        if k and step.is_const and not base.is_const and not v.is_const:
+            self.offsets[v.text] = (base, k * int(step.const))
+        return v
 
     def _emit_copies(self, axis: str, values: list[Val], body) -> None:
         """Emit ``body`` once per value of ``axis``; each copy gets its own SSA scope."""
@@ -615,12 +759,14 @@ class KernelCompiler:
 
     def _lower_Loop(self, s) -> None:
         self._seed_accumulators(s.body, s.seed)
+        self._rehome_accumulators(s.body)
         trips = static_extent(s.axis)
         self.em.comment(f"for {s.axis.name} in 0..{trips}")
         self._loop(s.axis.name, imm_int(0), imm_int(1), imm_int(trips), s.body, s.unroll)
 
     def _lower_StridedLoop(self, s) -> None:
         self._seed_accumulators(s.body, s.seed)
+        self._rehome_accumulators(s.body)
         name = s.axis.name
         start, step = self.expr(s.start), self.expr(s.step)
         bound = self.expr(s.end) if s.end is not None else imm_int(static_extent(s.axis))
@@ -631,6 +777,7 @@ class KernelCompiler:
 
     def _lower_Cond(self, s) -> None:
         ar, em = self.ar, self.em
+        self._rehome_accumulators(tuple(s.body) + tuple(s.else_body))
         cond = ar.convert(self.expr(s.cond), "pred")
         if cond.is_const:  # statically decided (common inside unrolled loops)
             with self.scope():
@@ -709,11 +856,6 @@ class KernelCompiler:
             em.ins(f"ld.{space}.b16", h.text, addr)
             em.ins("cvt.f32.f16" if buf.dtype == "f16" else "cvt.f32.bf16", r.text, h.text)
             return r
-        if ldty == "f64":
-            d, r = ar.reg("f64"), ar.reg("f32")
-            em.ins(f"ld.{space}.f64", d.text, addr)
-            em.ins("cvt.rn.f32.f64", r.text, d.text)
-            return r
         r = ar.reg(vty)
         em.ins(f"ld.{space}.{ldty}", r.text, addr)
         return r
@@ -727,10 +869,10 @@ class KernelCompiler:
             v = ar.materialize(ar.convert(val, vty))
             em.ins(f"red.{buf.space}.add.{'f32' if vty == 'f32' else 's32'}", addr, v.text)
             return
-        if stty in ("b16", "f64"):
+        if stty == "b16":
             f = ar.materialize(ar.convert(val, "f32"))
-            out = ar.reg("b16" if stty == "b16" else "f64")
-            cvt = {"f16": "cvt.rn.f16.f32", "bf16": "cvt.rn.bf16.f32", "f64": "cvt.f64.f32"}[buf.dtype]
+            out = ar.reg("b16")
+            cvt = {"f16": "cvt.rn.f16.f32", "bf16": "cvt.rn.bf16.f32"}[buf.dtype]
             em.ins(cvt, out.text, f.text)
             em.ins(f"st.{buf.space}.{stty}", addr, out.text)
             return
@@ -741,38 +883,39 @@ class KernelCompiler:
         buf = self.buffer(s.input)
         if buf.space == "literal":
             for name in s.names:
-                self.bind(name, imm_f32(buf.literal))
+                self.bind(name, imm_f64(buf.literal) if buf.dtype == "f64" else imm_f32(buf.literal))
             return
-        flat = self.flat_index(s.input, s.index)
+        var, const, g = self.split_index(s.input, s.index)
         n = len(s.names)
         if n in (2, 4) and buf.dtype in ("f32", "i32"):
             vty = DTYPES[buf.dtype][2]
             regs = [self.ar.reg(vty) for _ in range(n)]
             space = "global.nc" if buf.space == "global" and buf.readonly else buf.space
-            self.em.ins(f"ld.{space}.v{n}.{DTYPES[buf.dtype][1]}", "{" + ", ".join(r.text for r in regs) + "}", self.address(buf, flat))
+            self.em.ins(f"ld.{space}.v{n}.{DTYPES[buf.dtype][1]}", "{" + ", ".join(r.text for r in regs) + "}", self.address_of(buf, var, const, g))
             for name, r in zip(s.names, regs):
                 self.bind(name, r)
             return
         for k, name in enumerate(s.names):
-            self.bind(name, self.load_value(buf, self.address(buf, flat, k)))
+            self.bind(name, self.load_value(buf, self.address_of(buf, var, const, g, k)))
 
     def _lower_Write(self, s) -> None:
         buf = self.buffer(s.output)
-        flat = self.flat_index(s.output, s.index)
         vals = [self.lookup(v) for v in s.values]
         swz = getattr(s, "swizzle", "NONE") or "NONE"
         if swz != "NONE":
+            flat = self.flat_index(s.output, s.index)
             for k, v in enumerate(vals):
                 self.store_value(buf, self.address(buf, self.swizzle(swz, self.ar.add(flat, imm_int(k)))), v, s.atomic)
             return
+        var, const, g = self.split_index(s.output, s.index)
         n = len(vals)
         if n in (2, 4) and buf.dtype in ("f32", "i32") and not s.atomic:
             vty = DTYPES[buf.dtype][2]
             regs = [self.ar.materialize(self.ar.convert(v, vty)) for v in vals]
-            self.em.ins(f"st.{buf.space}.v{n}.{DTYPES[buf.dtype][1]}", self.address(buf, flat), "{" + ", ".join(r.text for r in regs) + "}")
+            self.em.ins(f"st.{buf.space}.v{n}.{DTYPES[buf.dtype][1]}", self.address_of(buf, var, const, g), "{" + ", ".join(r.text for r in regs) + "}")
             return
         for k, v in enumerate(vals):
-            self.store_value(buf, self.address(buf, flat, k), v, s.atomic)
+            self.store_value(buf, self.address_of(buf, var, const, g, k), v, s.atomic)
 
     def _lower_Smem(self, s) -> None:
         pass  # laid out up front by _plan_shared_memory
@@ -784,6 +927,8 @@ class KernelCompiler:
         elif s.barrier_id == 0:
             self.em.ins("bar.sync", "0")
         else:
+            if s.count is None:
+                raise ValueError(f"Sync(barrier_id={s.barrier_id}) requires a thread count")
             self.em.ins("bar.sync", str(s.barrier_id), str(s.count))
 
     def _lower_CpAsyncCopy(self, s) -> None:
@@ -837,7 +982,14 @@ class KernelCompiler:
             env = dict(self.env)
             for st, sb in zip(s.state, s.state_b):
                 other = ar.reg(regs[st].ty)
-                em.ins("shfl.sync.bfly.b32", other.text, regs[st].text, str(offset), "0x1f", mask.text)
+                if regs[st].ty in ("s64", "u64", "f64"):  # shfl is 32-bit
+                    lo, hi, lo2, hi2 = (ar.reg("s32") for _ in range(4))
+                    em.ins("mov.b64", f"{{{lo.text}, {hi.text}}}", regs[st].text)
+                    em.ins("shfl.sync.bfly.b32", lo2.text, lo.text, str(offset), "0x1f", mask.text)
+                    em.ins("shfl.sync.bfly.b32", hi2.text, hi.text, str(offset), "0x1f", mask.text)
+                    em.ins("mov.b64", other.text, f"{{{lo2.text}, {hi2.text}}}")
+                else:
+                    em.ins("shfl.sync.bfly.b32", other.text, regs[st].text, str(offset), "0x1f", mask.text)
                 env[sb] = other
             self._merge(s.combine_states, set(s.state), env)
             offset //= 2
@@ -848,6 +1000,8 @@ class KernelCompiler:
         tid = self.lookup(s.tid_var)
         bufs = [self.buffer(b) for b in s.bufs]
         inner = getattr(s, "inner", None)
+        if s.barrier_id and s.barrier_count is None:
+            raise ValueError(f"TreeHalve(barrier_id={s.barrier_id}) requires barrier_count")
 
         def slot(t: Val) -> Val:
             if inner is None:

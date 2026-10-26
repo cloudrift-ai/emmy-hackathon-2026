@@ -32,6 +32,9 @@ class KernelSource:
     dtypes: dict[str, str]  # graph buffer -> dtype name
     constants: dict[str, float] = field(default_factory=dict)  # ConstantOp buffer -> value
     knobs: dict = field(default_factory=dict)
+    block: int | None = None  # from meta.json
+    rtol: float | None = None
+    atol: float | None = None
 
 
 def _find_kernel(graph: Graph):
@@ -41,11 +44,13 @@ def _find_kernel(graph: Graph):
     return kernels[0]
 
 
-def _meta_kernel(ir_path: Path, entry: str) -> dict | None:
+def _meta(ir_path: Path) -> dict:
     meta_path = ir_path.parent / "meta.json"
-    if not meta_path.exists():
-        return None
-    kernels = json.loads(meta_path.read_text()).get("kernels", [])
+    return json.loads(meta_path.read_text()) if meta_path.exists() else {}
+
+
+def _meta_kernel(meta: dict, entry: str) -> dict | None:
+    kernels = meta.get("kernels", [])
     for k in kernels:
         if k.get("entry") == entry:
             return k
@@ -71,7 +76,8 @@ def load(path: str) -> KernelSource:
                 constants[node_name] = float(value)
 
     name = op.name
-    meta = _meta_kernel(ir_path, name)
+    problem = _meta(ir_path)
+    meta = _meta_kernel(problem, name)
     if meta is not None:
         by_name = {a["name"]: a for a in meta.get("args", [])}
         params = []
@@ -91,4 +97,7 @@ def load(path: str) -> KernelSource:
         dtypes=dtypes,
         constants=constants,
         knobs=dict(getattr(op, "knobs", {}) or {}),
+        block=int(meta["block"][0]) if meta and meta.get("block") else None,
+        rtol=float(problem["rtol"]) if "rtol" in problem else None,
+        atol=float(problem["atol"]) if "atol" in problem else None,
     )

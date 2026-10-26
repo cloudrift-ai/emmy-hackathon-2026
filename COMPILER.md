@@ -19,6 +19,7 @@ Emmy is used only to load the IR (`Graph.from_dict`). The IR-to-PTX lowering is 
 | `kernelc/arith.py` | typed scalar arithmetic with constant folding, algebraic identities and type conversions; the only place scalar opcodes are spelled |
 | `kernelc/mathlib.py` | every elementwise op Emmy can emit (`add` through `gelu_tanh`), lowered onto `Arith` |
 | `kernelc/codegen.py` | the statement walker: one `_lower_<Stmt>` method per Kernel IR statement |
+| `kernelc/peephole.py` | after emission, merges adjacent aligned scalar loads into `.v2`/`.v4` loads |
 
 ## How a kernel is lowered
 
@@ -34,8 +35,11 @@ Emmy is used only to load the IR (`Graph.from_dict`). The IR-to-PTX lowering is 
    Emmy's threadblock swizzle.
 4. **Walk.** `env` maps IR names to `Val`s. A nested body works on a copy of `env`, so its SSA
    names disappear when the body ends. Accumulators live in registers allocated before their
-   loop and seeded with `op.identity`, so they outlive the loop. Index expressions are
-   compiled recursively, folded, and memoized per scope.
+   loop and seeded with `op.identity`, so they outlive the loop. Like Emmy, a loop seeds only
+   the `Accum`s in its immediate body. Index expressions are compiled recursively, folded, and
+   memoized per scope.
+4b. **Addressing.** An index becomes a base register plus an immediate offset, and the
+   peephole merges neighbouring aligned loads into `.v2`/`.v4`.
 5. **Loops.** If the trip count is the same for every thread (this is also proved when `start`
    is a Tile axis with a known range), the loop is unrolled fully or 2/4/8 copies per trip, with
    the induction variable as a constant or `i + k*step`. Otherwise it becomes a bottom-tested
@@ -47,7 +51,7 @@ Emmy is used only to load the IR (`Graph.from_dict`). The IR-to-PTX lowering is 
 |---|---|
 | `Load` / `Write` | `ld/st.global` or `.shared`; 2/4-wide groups become `.v2/.v4`; constant offsets go into the address immediate |
 | `Write(atomic)` | `red.global.add.f32` |
-| `Assign`, `Let`, `Select`, `Init` | `mathlib` / `Arith`; `.rn` on every float op, so `ptxas` never contracts `mul`+`add` and results match numpy bit for bit |
+| `Assign`, `Let`, `Select`, `Init` | `mathlib` / `Arith`; `.rn` on every float op, so `ptxas` never contracts `mul`+`add` and results match numpy bit for bit (except under fast math, below) |
 | `Accum` | updates the accumulator register in place; `acc += a*b` becomes one `fma.rn.f32` |
 | `Cond` | `setp` + `@!p bra`; a condition that folds to a constant compiles only the branch taken |
 | `WarpShuffle` | `activemask` + a `shfl.sync.bfly.b32` ladder, running `combine_states` after each step |
@@ -68,3 +72,8 @@ op is therefore built from range reduction plus a polynomial:
 - `sin` and `cos`: 3-part pi/2 reduction.
 
 `tests/op_accuracy.py` measures these on the GPU at 0.5 to 2 ulp against a float64 reference.
+`remainder`, `fmod` and `floor_divide` are exact.
+
+**Fast math.** When `meta.json` gives `rtol >= 1e-4`, `exp`, reciprocal, `sqrt` and `rsqrt` use
+the hardware `.approx.ftz` units, division is `div.full`, and f32 `add/sub/mul` may fuse into
+`fma`. `KERNELC_FAST_MATH=0/1` overrides.
