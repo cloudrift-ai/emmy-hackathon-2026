@@ -1,0 +1,82 @@
+{
+  "inputs": [
+    "a",
+    "b",
+    "w"
+  ],
+  "outputs": [
+    "add"
+  ],
+  "nodes": {
+    "a": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "a",
+          "shape": [
+            50,
+            70
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "b": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "b",
+          "shape": [
+            30
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "w": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "w",
+          "shape": [
+            70,
+            30
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "add": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='a0', extent=Dim(50), window=None), Axis(name='a1', extent=Dim(30), window=None), Axis(name='a2_co', extent=Dim(256), window=None)), body=(StridedLoop(axis=Axis(name='a2', extent=Dim(70), window=None), start=Var(name='a2_co'), step=Literal(value=1024, dtype='int'), body=(Load(names=('in0',), input='a', index=(Var(name='a0'), Var(name='a2')), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1',), input='w', index=(Var(name='a2'), Var(name='a1')), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0', op=ElementwiseImpl('multiply'), args=('in0', 'in1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc0', value='v0', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a2',), base=None), Load(names=('in0__r1',), input='a', index=(Var(name='a0'), BinaryExpr(op='%', left=BinaryExpr(op='+', left=Var(name='a2'), right=Literal(value=256, dtype='int')), right=Literal(value=70, dtype='int'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__r1',), input='w', index=(BinaryExpr(op='%', left=BinaryExpr(op='+', left=Var(name='a2'), right=Literal(value=256, dtype='int')), right=Literal(value=70, dtype='int')), Var(name='a1')), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__r1', op=ElementwiseImpl('multiply'), args=('in0__r1', 'in1__r1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Init(name='v0__r1__id', identity=0.0, dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Select(name='v0__r1__m', branches=(SelectBranch(value='v0__r1', select=BinaryExpr(op='<', left=BinaryExpr(op='+', left=Var(name='a2'), right=Literal(value=256, dtype='int')), right=Literal(value=70, dtype='int'))), SelectBranch(value='v0__r1__id', select=Literal(value=1, dtype='int')))), Accum(name='acc0__r1', value='v0__r1__m', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a2',), base=None), Load(names=('in0__r2',), input='a', index=(Var(name='a0'), BinaryExpr(op='%', left=BinaryExpr(op='+', left=Var(name='a2'), right=Literal(value=512, dtype='int')), right=Literal(value=70, dtype='int'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__r2',), input='w', index=(BinaryExpr(op='%', left=BinaryExpr(op='+', left=Var(name='a2'), right=Literal(value=512, dtype='int')), right=Literal(value=70, dtype='int')), Var(name='a1')), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__r2', op=ElementwiseImpl('multiply'), args=('in0__r2', 'in1__r2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Init(name='v0__r2__id', identity=0.0, dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Select(name='v0__r2__m', branches=(SelectBranch(value='v0__r2', select=BinaryExpr(op='<', left=BinaryExpr(op='+', left=Var(name='a2'), right=Literal(value=512, dtype='int')), right=Literal(value=70, dtype='int'))), SelectBranch(value='v0__r2__id', select=Literal(value=1, dtype='int')))), Accum(name='acc0__r2', value='v0__r2__m', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a2',), base=None), Load(names=('in0__r3',), input='a', index=(Var(name='a0'), BinaryExpr(op='%', left=BinaryExpr(op='+', left=Var(name='a2'), right=Literal(value=768, dtype='int')), right=Literal(value=70, dtype='int'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__r3',), input='w', index=(BinaryExpr(op='%', left=BinaryExpr(op='+', left=Var(name='a2'), right=Literal(value=768, dtype='int')), right=Literal(value=70, dtype='int')), Var(name='a1')), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__r3', op=ElementwiseImpl('multiply'), args=('in0__r3', 'in1__r3'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Init(name='v0__r3__id', identity=0.0, dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Select(name='v0__r3__m', branches=(SelectBranch(value='v0__r3', select=BinaryExpr(op='<', left=BinaryExpr(op='+', left=Var(name='a2'), right=Literal(value=768, dtype='int')), right=Literal(value=70, dtype='int'))), SelectBranch(value='v0__r3__id', select=Literal(value=1, dtype='int')))), Accum(name='acc0__r3', value='v0__r3__m', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a2',), base=None)), unroll=False, end=None, seed=True), Accum(name='acc0', value='acc0__r1', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=(), base=None), Accum(name='acc0', value='acc0__r2', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=(), base=None), Accum(name='acc0', value='acc0__r3', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=(), base=None), WarpShuffle(state=('acc0',), state_b=('acc0__o',), combine_states=(Assign(name='acc0', op=ElementwiseImpl('add'), args=('acc0', 'acc0__o'), dtype=None),), length=32, dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Smem(name='acc0_smem', extents=(8,), dtype='float', align=0), Cond(cond=BinaryExpr(op='==', left=Var(name='lane'), right=Literal(value=0, dtype='int')), body=(Write(output='acc0_smem', index=(Var(name='warp'),), values=('acc0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE'),), else_body=()), Sync(barrier_id=0, count=None, warp=False), TreeHalve(bufs=('acc0_smem',), state=('acc0',), state_b=('acc0__o',), combine_states=(Assign(name='acc0', op=ElementwiseImpl('add'), args=('acc0', 'acc0__o'), dtype=None),), length=8, tid_var='warp', dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), barrier_id=0, barrier_count=None, inner=None), Cond(cond=BinaryExpr(op='==', left=Var(name='a2_co'), right=Literal(value=0, dtype='int')), body=(Load(names=('in2',), input='b', index=(Var(name='a1'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v1', op=ElementwiseImpl('add'), args=('acc0', 'in2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Write(output='add', index=(Var(name='a0'), Var(name='a1')), values=('v1',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE')), else_body=())), block_threads=256, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_matmul_1b6d2a",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "b",
+        "w",
+        "a"
+      ],
+      "outputs": [
+        {
+          "name": "add",
+          "shape": [
+            50,
+            30
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

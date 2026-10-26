@@ -1,0 +1,88 @@
+{
+ "id": "kf_layernorm_t1024_coop",
+ "code": "torch.nn.functional.layer_norm(torch.randn(19, 300), (300,))",
+ "rtol": 0.001,
+ "atol": 0.0001,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "layer_norm"
+ ],
+ "kernels": [
+  {
+   "node": "layer_norm",
+   "entry": "k_layer_norm_6f902e",
+   "arg_order": [
+    "layer_norm_var_count",
+    "layer_norm_mean_count",
+    "layer_norm_eps",
+    "x",
+    "layer_norm"
+   ],
+   "grid": [
+    1,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "layer_norm_var_count",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      300.0
+     ]
+    },
+    {
+     "name": "layer_norm_mean_count",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      300.0
+     ]
+    },
+    {
+     "name": "layer_norm_eps",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      1e-05
+     ]
+    },
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      19,
+      300
+     ],
+     "seed": 0
+    },
+    {
+     "name": "layer_norm",
+     "dtype": "f32",
+     "shape": [
+      19,
+      300
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

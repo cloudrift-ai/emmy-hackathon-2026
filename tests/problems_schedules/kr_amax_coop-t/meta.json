@@ -1,0 +1,54 @@
+{
+ "id": "kr_amax_coop-t",
+ "code": "torch.randn(45, 333).amax(-1)",
+ "rtol": 0,
+ "atol": 0,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "amax"
+ ],
+ "kernels": [
+  {
+   "node": "amax",
+   "entry": "k_amax_reduce",
+   "arg_order": [
+    "x",
+    "amax"
+   ],
+   "grid": [
+    2,
+    1,
+    1
+   ],
+   "block": [
+    128,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      45,
+      333
+     ],
+     "seed": 0
+    },
+    {
+     "name": "amax",
+     "dtype": "f32",
+     "shape": [
+      45
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

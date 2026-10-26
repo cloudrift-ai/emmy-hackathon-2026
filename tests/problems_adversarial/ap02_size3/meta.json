@@ -1,0 +1,63 @@
+{
+ "id": "ap02_size3",
+ "code": "torch.randn(3) * torch.randn(3)",
+ "rtol": 0,
+ "atol": 0,
+ "graph_inputs": [
+  "x0",
+  "x1"
+ ],
+ "graph_outputs": [
+  "mul"
+ ],
+ "kernels": [
+  {
+   "node": "mul",
+   "entry": "k_mul_pointwise",
+   "arg_order": [
+    "x0",
+    "x1",
+    "mul"
+   ],
+   "grid": [
+    1,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "x0",
+     "dtype": "f32",
+     "shape": [
+      3
+     ],
+     "seed": 0
+    },
+    {
+     "name": "x1",
+     "dtype": "f32",
+     "shape": [
+      3
+     ],
+     "seed": 1
+    },
+    {
+     "name": "mul",
+     "dtype": "f32",
+     "shape": [
+      3
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

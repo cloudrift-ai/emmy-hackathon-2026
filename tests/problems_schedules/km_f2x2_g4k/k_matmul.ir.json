@@ -1,0 +1,50 @@
+{
+  "inputs": [
+    "matmul__partial"
+  ],
+  "outputs": [
+    "matmul"
+  ],
+  "nodes": {
+    "matmul__partial": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "matmul__partial",
+          "shape": [
+            4,
+            200,
+            168
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "matmul": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='a0', extent=Dim(200), window=None), Axis(name='a1', extent=Dim(168), window=None)), body=(Loop(axis=Axis(name='_a2_ks', extent=Dim(4), window=Window(parent=Axis(name='_a2_ks', extent=Dim(4), window=None), base=None, bound=None, partition=True)), body=(Load(names=('acc0__p',), input='matmul__partial', index=(Var(name='_a2_ks'), Var(name='a0'), Var(name='a1')), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc0', value='acc0__p', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('_a2_ks',), base=None)), unroll=False, seed=True), Write(output='matmul', index=(Var(name='a0'), Var(name='a1')), values=('acc0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE')), block_threads=None, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_matmul",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "matmul__partial"
+      ],
+      "outputs": [
+        {
+          "name": "matmul",
+          "shape": [
+            200,
+            168
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

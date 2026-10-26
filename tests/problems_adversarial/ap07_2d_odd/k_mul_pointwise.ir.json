@@ -1,0 +1,66 @@
+{
+  "inputs": [
+    "x0",
+    "x1"
+  ],
+  "outputs": [
+    "mul"
+  ],
+  "nodes": {
+    "x0": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x0",
+          "shape": [
+            7,
+            13
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "x1": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x1",
+          "shape": [
+            7,
+            13
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "mul": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='a0', extent=Dim(91), window=None),), body=(Load(names=('in0',), input='x0', index=(BinaryExpr(op='//', left=Var(name='a0'), right=Literal(value=13, dtype='int')), BinaryExpr(op='%', left=Var(name='a0'), right=Literal(value=13, dtype='int'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1',), input='x1', index=(BinaryExpr(op='//', left=Var(name='a0'), right=Literal(value=13, dtype='int')), BinaryExpr(op='%', left=Var(name='a0'), right=Literal(value=13, dtype='int'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0', op=ElementwiseImpl('multiply'), args=('in0', 'in1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Write(output='mul', index=(BinaryExpr(op='//', left=Var(name='a0'), right=Literal(value=13, dtype='int')), BinaryExpr(op='%', left=Var(name='a0'), right=Literal(value=13, dtype='int'))), values=('v0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE')), block_threads=None, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_mul_pointwise",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "x0",
+        "x1"
+      ],
+      "outputs": [
+        {
+          "name": "mul",
+          "shape": [
+            7,
+            13
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

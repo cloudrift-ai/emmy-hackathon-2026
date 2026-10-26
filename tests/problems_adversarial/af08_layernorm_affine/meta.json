@@ -1,0 +1,108 @@
+{
+ "id": "af08_layernorm_affine",
+ "code": "x = torch.randn(64, 768); w = torch.randn(768); b = torch.randn(768); torch.nn.functional.layer_norm(x, (768,), w, b)",
+ "rtol": 0.001,
+ "atol": 0.0001,
+ "graph_inputs": [
+  "x",
+  "w",
+  "b"
+ ],
+ "graph_outputs": [
+  "layer_norm"
+ ],
+ "kernels": [
+  {
+   "node": "layer_norm",
+   "entry": "k_layer_norm_d2eac9",
+   "arg_order": [
+    "layer_norm_var_count",
+    "layer_norm_mean_count",
+    "layer_norm_eps",
+    "x",
+    "w",
+    "b",
+    "layer_norm"
+   ],
+   "grid": [
+    64,
+    1,
+    1
+   ],
+   "block": [
+    128,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "layer_norm_var_count",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      768.0
+     ]
+    },
+    {
+     "name": "layer_norm_mean_count",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      768.0
+     ]
+    },
+    {
+     "name": "layer_norm_eps",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      1e-05
+     ]
+    },
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      64,
+      768
+     ],
+     "seed": 0
+    },
+    {
+     "name": "w",
+     "dtype": "f32",
+     "shape": [
+      768
+     ],
+     "seed": 1
+    },
+    {
+     "name": "b",
+     "dtype": "f32",
+     "shape": [
+      768
+     ],
+     "seed": 2
+    },
+    {
+     "name": "layer_norm",
+     "dtype": "f32",
+     "shape": [
+      64,
+      768
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

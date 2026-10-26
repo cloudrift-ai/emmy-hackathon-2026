@@ -1,0 +1,125 @@
+{
+  "inputs": [
+    "gelu__partial"
+  ],
+  "outputs": [
+    "gelu"
+  ],
+  "nodes": {
+    "gelu_half": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "gelu_half",
+        "value": 0.5,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "gelu_half",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "gelu_inv_sqrt2": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "gelu_inv_sqrt2",
+        "value": 0.7071067811865475,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "gelu_inv_sqrt2",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "gelu_one": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "gelu_one",
+        "value": 1.0,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "gelu_one",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "gelu__partial": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "gelu__partial",
+          "shape": [
+            32,
+            64,
+            80
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "gelu": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='a0', extent=Dim(64), window=None), Axis(name='a1', extent=Dim(80), window=None)), body=(Loop(axis=Axis(name='_a2_ks', extent=Dim(32), window=Window(parent=Axis(name='_a2_ks', extent=Dim(32), window=None), base=None, bound=None, partition=True)), body=(Load(names=('acc0__p',), input='gelu__partial', index=(Var(name='_a2_ks'), Var(name='a0'), Var(name='a1')), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc0', value='acc0__p', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('_a2_ks',), base=None)), unroll=False, seed=True), Load(names=('in0',), input='gelu_half', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v4', op=ElementwiseImpl('multiply'), args=('acc0', 'in0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1',), input='gelu_inv_sqrt2', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v1', op=ElementwiseImpl('multiply'), args=('acc0', 'in1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v2', op=ElementwiseImpl('erf'), args=('v1',), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in2',), input='gelu_one', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v3', op=ElementwiseImpl('add'), args=('in2', 'v2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v5', op=ElementwiseImpl('multiply'), args=('v3', 'v4'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Write(output='gelu', index=(Var(name='a0'), Var(name='a1')), values=('v5',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE')), block_threads=None, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_gelu",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "gelu__partial",
+        "gelu_inv_sqrt2",
+        "gelu_half",
+        "gelu_one"
+      ],
+      "outputs": [
+        {
+          "name": "gelu",
+          "shape": [
+            64,
+            80
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

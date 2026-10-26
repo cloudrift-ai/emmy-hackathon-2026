@@ -1,0 +1,76 @@
+{
+ "id": "am11_linear_bias",
+ "code": "a = torch.randn(50, 70); w = torch.randn(70, 30); b = torch.randn(30); a @ w + b",
+ "rtol": 0.001,
+ "atol": 0.001,
+ "graph_inputs": [
+  "a",
+  "w",
+  "b"
+ ],
+ "graph_outputs": [
+  "add"
+ ],
+ "kernels": [
+  {
+   "node": "add",
+   "entry": "k_matmul_1b6d2a",
+   "arg_order": [
+    "b",
+    "w",
+    "a",
+    "add"
+   ],
+   "grid": [
+    1500,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "b",
+     "dtype": "f32",
+     "shape": [
+      30
+     ],
+     "seed": 2
+    },
+    {
+     "name": "w",
+     "dtype": "f32",
+     "shape": [
+      70,
+      30
+     ],
+     "seed": 1
+    },
+    {
+     "name": "a",
+     "dtype": "f32",
+     "shape": [
+      50,
+      70
+     ],
+     "seed": 0
+    },
+    {
+     "name": "add",
+     "dtype": "f32",
+     "shape": [
+      50,
+      30
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

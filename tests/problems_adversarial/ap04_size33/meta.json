@@ -1,0 +1,63 @@
+{
+ "id": "ap04_size33",
+ "code": "torch.randn(33) - torch.randn(33)",
+ "rtol": 0,
+ "atol": 0,
+ "graph_inputs": [
+  "x0",
+  "x1"
+ ],
+ "graph_outputs": [
+  "sub"
+ ],
+ "kernels": [
+  {
+   "node": "sub",
+   "entry": "k_sub_pointwise",
+   "arg_order": [
+    "x0",
+    "x1",
+    "sub"
+   ],
+   "grid": [
+    1,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "x0",
+     "dtype": "f32",
+     "shape": [
+      33
+     ],
+     "seed": 0
+    },
+    {
+     "name": "x1",
+     "dtype": "f32",
+     "shape": [
+      33
+     ],
+     "seed": 1
+    },
+    {
+     "name": "sub",
+     "dtype": "f32",
+     "shape": [
+      33
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

@@ -1,0 +1,55 @@
+{
+ "id": "af06_softmax_dim0_odd",
+ "code": "torch.softmax(torch.randn(77, 9), dim=0)",
+ "rtol": 0.001,
+ "atol": 1e-05,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "softmax"
+ ],
+ "kernels": [
+  {
+   "node": "softmax",
+   "entry": "k_softmax_77a6f8",
+   "arg_order": [
+    "x",
+    "softmax"
+   ],
+   "grid": [
+    693,
+    1,
+    1
+   ],
+   "block": [
+    128,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      77,
+      9
+     ],
+     "seed": 0
+    },
+    {
+     "name": "softmax",
+     "dtype": "f32",
+     "shape": [
+      77,
+      9
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

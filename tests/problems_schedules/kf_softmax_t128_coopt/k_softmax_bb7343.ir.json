@@ -1,0 +1,49 @@
+{
+  "inputs": [
+    "x"
+  ],
+  "outputs": [
+    "softmax"
+  ],
+  "nodes": {
+    "x": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x",
+          "shape": [
+            29,
+            515
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "softmax": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='a0', extent=Dim(29), window=None),), body=(Loop(axis=Axis(name='a1', extent=Dim(515), window=None), body=(Let(name='one', value=Literal(value=1.0, dtype='float'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in0',), input='x', index=(Var(name='a0'), Var(name='a1')), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='in0__gn', op=ElementwiseImpl('maximum'), args=('acc0', 'in0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='in0__dg', op=ElementwiseImpl('subtract'), args=('acc0', 'in0__gn'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='in0__alpha', op=ElementwiseImpl('exp'), args=('in0__dg',), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='in0__dg_o', op=ElementwiseImpl('subtract'), args=('in0', 'in0__gn'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='in0__beta', op=ElementwiseImpl('exp'), args=('in0__dg_o',), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='in0__acc1_sa', op=ElementwiseImpl('multiply'), args=('acc1', 'in0__alpha'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='in0__acc1_sb', op=ElementwiseImpl('multiply'), args=('in0__beta', 'one'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc1', value='in0__acc1_sb', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a1',), base='in0__acc1_sa'), Accum(name='acc0', value='in0', op=ElementwiseImpl('maximum'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a1',), base=None)), unroll=False, seed=True), Assign(name='v2', op=ElementwiseImpl('reciprocal'), args=('acc1',), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Loop(axis=Axis(name='a3', extent=Dim(515), window=None), body=(Load(names=('in2',), input='x', index=(Var(name='a0'), Var(name='a3')), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v3', op=ElementwiseImpl('subtract'), args=('in2', 'acc0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v4', op=ElementwiseImpl('exp'), args=('v3',), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v5', op=ElementwiseImpl('multiply'), args=('v2', 'v4'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Write(output='softmax', index=(Var(name='a0'), Var(name='a3')), values=('v5',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE')), unroll=False, seed=True)), block_threads=None, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_softmax_bb7343",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "x"
+      ],
+      "outputs": [
+        {
+          "name": "softmax",
+          "shape": [
+            29,
+            515
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

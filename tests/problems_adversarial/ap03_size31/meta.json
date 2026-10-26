@@ -1,0 +1,53 @@
+{
+ "id": "ap03_size31",
+ "code": "torch.relu(torch.randn(31))",
+ "rtol": 0,
+ "atol": 0,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "relu"
+ ],
+ "kernels": [
+  {
+   "node": "relu",
+   "entry": "k_relu_pointwise",
+   "arg_order": [
+    "x",
+    "relu"
+   ],
+   "grid": [
+    1,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      31
+     ],
+     "seed": 0
+    },
+    {
+     "name": "relu",
+     "dtype": "f32",
+     "shape": [
+      31
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

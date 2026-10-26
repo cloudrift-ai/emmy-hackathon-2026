@@ -1,0 +1,95 @@
+{
+ "id": "kg_amax_g4k",
+ "code": "torch.randn(45, 512).amax(-1)",
+ "rtol": 0,
+ "atol": 0,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "amax"
+ ],
+ "kernels": [
+  {
+   "node": "amax__partial",
+   "entry": "k_amax__partial",
+   "arg_order": [
+    "x",
+    "amax__partial"
+   ],
+   "grid": [
+    1,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      45,
+      512
+     ],
+     "seed": 0
+    },
+    {
+     "name": "amax__partial",
+     "dtype": "f32",
+     "shape": [
+      4,
+      45
+     ],
+     "output": true
+    }
+   ],
+   "final": false
+  },
+  {
+   "node": "amax",
+   "entry": "k_amax",
+   "arg_order": [
+    "amax__partial",
+    "amax"
+   ],
+   "grid": [
+    1,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "amax__partial",
+     "dtype": "f32",
+     "shape": [
+      4,
+      45
+     ],
+     "intermediate": true
+    },
+    {
+     "name": "amax",
+     "dtype": "f32",
+     "shape": [
+      45
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

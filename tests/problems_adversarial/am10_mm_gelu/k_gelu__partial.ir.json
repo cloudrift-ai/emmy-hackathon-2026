@@ -1,0 +1,142 @@
+{
+  "inputs": [
+    "a",
+    "b"
+  ],
+  "outputs": [
+    "gelu__partial"
+  ],
+  "nodes": {
+    "a": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "a",
+          "shape": [
+            64,
+            96
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "b": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "b",
+          "shape": [
+            96,
+            80
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "gelu_half": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "gelu_half",
+        "value": 0.5,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "gelu_half",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "gelu_inv_sqrt2": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "gelu_inv_sqrt2",
+        "value": 0.7071067811865475,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "gelu_inv_sqrt2",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "gelu_one": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "gelu_one",
+        "value": 1.0,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "gelu_one",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "gelu__partial": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='_a2_ks', extent=Dim(32), window=None), Axis(name='a0_b', extent=Dim(2), window=Window(parent=Axis(name='a0', extent=Dim(64), window=None), base=None, bound=None, partition=False)), Axis(name='a1_b', extent=Dim(3), window=Window(parent=Axis(name='a1', extent=Dim(80), window=None), base=None, bound=None, partition=False)), Axis(name='a0_u', extent=Dim(8), window=None), Axis(name='a1_u', extent=Dim(32), window=None)), body=(Loop(axis=Axis(name='a2', extent=Dim(3), window=Window(parent=Axis(name='a2', extent=Dim(96), window=None), base=None, bound=None, partition=True)), body=(Load(names=('in3__ar0',), input='a', index=(BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a0_u'), right=Literal(value=4, dtype='int'))), right=Literal(value=0, dtype='int')), BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='_a2_ks'), right=Literal(value=3, dtype='int')), right=Var(name='a2'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in4__bc0',), input='b', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='_a2_ks'), right=Literal(value=3, dtype='int')), right=Var(name='a2')), BinaryExpr(op='%', left=BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a1_u'), right=Literal(value=1, dtype='int'))), right=Literal(value=0, dtype='int')), right=Literal(value=80, dtype='int'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__c0_0', op=ElementwiseImpl('multiply'), args=('in3__ar0', 'in4__bc0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc0__c0_0', value='v0__c0_0', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a2',), base=None), Load(names=('in3__ar1',), input='a', index=(BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a0_u'), right=Literal(value=4, dtype='int'))), right=Literal(value=1, dtype='int')), BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='_a2_ks'), right=Literal(value=3, dtype='int')), right=Var(name='a2'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__c1_0', op=ElementwiseImpl('multiply'), args=('in3__ar1', 'in4__bc0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc0__c1_0', value='v0__c1_0', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a2',), base=None), Load(names=('in3__ar2',), input='a', index=(BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a0_u'), right=Literal(value=4, dtype='int'))), right=Literal(value=2, dtype='int')), BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='_a2_ks'), right=Literal(value=3, dtype='int')), right=Var(name='a2'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__c2_0', op=ElementwiseImpl('multiply'), args=('in3__ar2', 'in4__bc0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc0__c2_0', value='v0__c2_0', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a2',), base=None), Load(names=('in3__ar3',), input='a', index=(BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a0_u'), right=Literal(value=4, dtype='int'))), right=Literal(value=3, dtype='int')), BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='_a2_ks'), right=Literal(value=3, dtype='int')), right=Var(name='a2'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__c3_0', op=ElementwiseImpl('multiply'), args=('in3__ar3', 'in4__bc0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc0__c3_0', value='v0__c3_0', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a2',), base=None)), unroll=True, seed=True), Cond(cond=BinaryExpr(op='<', left=BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a1_u'), right=Literal(value=1, dtype='int'))), right=Literal(value=0, dtype='int')), right=Literal(value=80, dtype='int')), body=(Write(output='gelu__partial', index=(Var(name='_a2_ks'), BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a0_u'), right=Literal(value=4, dtype='int'))), right=Literal(value=0, dtype='int')), BinaryExpr(op='%', left=BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a1_u'), right=Literal(value=1, dtype='int'))), right=Literal(value=0, dtype='int')), right=Literal(value=80, dtype='int'))), values=('acc0__c0_0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE'),), else_body=()), Cond(cond=BinaryExpr(op='<', left=BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a1_u'), right=Literal(value=1, dtype='int'))), right=Literal(value=0, dtype='int')), right=Literal(value=80, dtype='int')), body=(Write(output='gelu__partial', index=(Var(name='_a2_ks'), BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a0_u'), right=Literal(value=4, dtype='int'))), right=Literal(value=1, dtype='int')), BinaryExpr(op='%', left=BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a1_u'), right=Literal(value=1, dtype='int'))), right=Literal(value=0, dtype='int')), right=Literal(value=80, dtype='int'))), values=('acc0__c1_0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE'),), else_body=()), Cond(cond=BinaryExpr(op='<', left=BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a1_u'), right=Literal(value=1, dtype='int'))), right=Literal(value=0, dtype='int')), right=Literal(value=80, dtype='int')), body=(Write(output='gelu__partial', index=(Var(name='_a2_ks'), BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a0_u'), right=Literal(value=4, dtype='int'))), right=Literal(value=2, dtype='int')), BinaryExpr(op='%', left=BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a1_u'), right=Literal(value=1, dtype='int'))), right=Literal(value=0, dtype='int')), right=Literal(value=80, dtype='int'))), values=('acc0__c2_0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE'),), else_body=()), Cond(cond=BinaryExpr(op='<', left=BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a1_u'), right=Literal(value=1, dtype='int'))), right=Literal(value=0, dtype='int')), right=Literal(value=80, dtype='int')), body=(Write(output='gelu__partial', index=(Var(name='_a2_ks'), BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a0_u'), right=Literal(value=4, dtype='int'))), right=Literal(value=3, dtype='int')), BinaryExpr(op='%', left=BinaryExpr(op='+', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1_b'), right=Literal(value=32, dtype='int')), right=BinaryExpr(op='*', left=Var(name='a1_u'), right=Literal(value=1, dtype='int'))), right=Literal(value=0, dtype='int')), right=Literal(value=80, dtype='int'))), values=('acc0__c3_0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE'),), else_body=())), block_threads=256, aux_threads=0, raster_axes=('a0_b', 'a1_b'), raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_gelu__partial",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "gelu_inv_sqrt2",
+        "gelu_half",
+        "gelu_one",
+        "b",
+        "a"
+      ],
+      "outputs": [
+        {
+          "name": "gelu__partial",
+          "shape": [
+            32,
+            64,
+            80
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

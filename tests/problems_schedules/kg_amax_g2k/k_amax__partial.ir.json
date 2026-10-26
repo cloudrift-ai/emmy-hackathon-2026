@@ -1,0 +1,49 @@
+{
+  "inputs": [
+    "x"
+  ],
+  "outputs": [
+    "amax__partial"
+  ],
+  "nodes": {
+    "x": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x",
+          "shape": [
+            45,
+            512
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "amax__partial": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='_ksplit', extent=Dim(2), window=None), Axis(name='a0', extent=Dim(45), window=None)), body=(Loop(axis=Axis(name='a1', extent=Dim(256), window=Window(parent=Axis(name='a1', extent=Dim(512), window=None), base=None, bound=None, partition=True)), body=(Load(names=('in0',), input='x', index=(Var(name='a0'), BinaryExpr(op='+', left=Var(name='a1'), right=BinaryExpr(op='*', left=Var(name='_ksplit'), right=Literal(value=256, dtype='int')))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc0', value='in0', op=ElementwiseImpl('maximum'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a1',), base=None)), unroll=False, seed=True), Write(output='amax__partial', index=(Var(name='_ksplit'), Var(name='a0')), values=('acc0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE')), block_threads=None, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_amax__partial",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "x"
+      ],
+      "outputs": [
+        {
+          "name": "amax__partial",
+          "shape": [
+            2,
+            45
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

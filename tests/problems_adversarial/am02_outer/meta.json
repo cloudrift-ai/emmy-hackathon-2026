@@ -1,0 +1,66 @@
+{
+ "id": "am02_outer",
+ "code": "torch.randn(40, 1) @ torch.randn(1, 30)",
+ "rtol": 0.001,
+ "atol": 0.001,
+ "graph_inputs": [
+  "x0",
+  "x1"
+ ],
+ "graph_outputs": [
+  "matmul"
+ ],
+ "kernels": [
+  {
+   "node": "matmul",
+   "entry": "k_matmul_7a051a",
+   "arg_order": [
+    "x0",
+    "x1",
+    "matmul"
+   ],
+   "grid": [
+    2,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "x0",
+     "dtype": "f32",
+     "shape": [
+      40,
+      1
+     ],
+     "seed": 0
+    },
+    {
+     "name": "x1",
+     "dtype": "f32",
+     "shape": [
+      1,
+      30
+     ],
+     "seed": 1
+    },
+    {
+     "name": "matmul",
+     "dtype": "f32",
+     "shape": [
+      40,
+      30
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

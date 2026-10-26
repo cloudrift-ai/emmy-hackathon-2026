@@ -1,0 +1,95 @@
+{
+ "id": "kg_rowsum_g2k",
+ "code": "torch.randn(37, 1024).sum(-1)",
+ "rtol": 0.0001,
+ "atol": 0.0001,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "sum_1"
+ ],
+ "kernels": [
+  {
+   "node": "sum_1__partial",
+   "entry": "k_sum_1__partial",
+   "arg_order": [
+    "x",
+    "sum_1__partial"
+   ],
+   "grid": [
+    1,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      37,
+      1024
+     ],
+     "seed": 0
+    },
+    {
+     "name": "sum_1__partial",
+     "dtype": "f32",
+     "shape": [
+      2,
+      37
+     ],
+     "output": true
+    }
+   ],
+   "final": false
+  },
+  {
+   "node": "sum_1",
+   "entry": "k_sum_1",
+   "arg_order": [
+    "sum_1__partial",
+    "sum_1"
+   ],
+   "grid": [
+    1,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "sum_1__partial",
+     "dtype": "f32",
+     "shape": [
+      2,
+      37
+     ],
+     "intermediate": true
+    },
+    {
+     "name": "sum_1",
+     "dtype": "f32",
+     "shape": [
+      37
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

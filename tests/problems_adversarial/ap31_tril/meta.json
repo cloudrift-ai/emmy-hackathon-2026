@@ -1,0 +1,66 @@
+{
+ "id": "ap31_tril",
+ "code": "torch.tril(torch.randn(33, 33))",
+ "rtol": 0,
+ "atol": 0,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "tril"
+ ],
+ "kernels": [
+  {
+   "node": "tril",
+   "entry": "k_tril_pointwise",
+   "arg_order": [
+    "x",
+    "tril_zero",
+    "tril"
+   ],
+   "grid": [
+    2,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      33,
+      33
+     ],
+     "seed": 0
+    },
+    {
+     "name": "tril_zero",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      0.0
+     ]
+    },
+    {
+     "name": "tril",
+     "dtype": "f32",
+     "shape": [
+      33,
+      33
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

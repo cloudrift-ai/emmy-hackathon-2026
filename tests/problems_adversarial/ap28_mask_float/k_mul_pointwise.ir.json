@@ -1,0 +1,72 @@
+{
+  "inputs": [
+    "x"
+  ],
+  "outputs": [
+    "mul"
+  ],
+  "nodes": {
+    "gt_c1": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "gt_c1",
+        "value": 0.0,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "gt_c1",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "x": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x",
+          "shape": [
+            2048
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "mul": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='a0', extent=Dim(512), window=None),), body=(Load(names=('in0__u0',), input='gt_c1', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__u0',), input='x', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=4, dtype='int')), right=Literal(value=0, dtype='int')),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__u0', op=ElementwiseImpl('greater'), args=('in1__u0', 'in0__u0'), dtype=DataType(name='bool', np=dtype('bool'), nbytes=1)), Assign(name='v1__u0', op=ElementwiseImpl('multiply'), args=('in1__u0', 'v0__u0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in0__u1',), input='gt_c1', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__u1',), input='x', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=4, dtype='int')), right=Literal(value=1, dtype='int')),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__u1', op=ElementwiseImpl('greater'), args=('in1__u1', 'in0__u1'), dtype=DataType(name='bool', np=dtype('bool'), nbytes=1)), Assign(name='v1__u1', op=ElementwiseImpl('multiply'), args=('in1__u1', 'v0__u1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in0__u2',), input='gt_c1', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__u2',), input='x', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=4, dtype='int')), right=Literal(value=2, dtype='int')),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__u2', op=ElementwiseImpl('greater'), args=('in1__u2', 'in0__u2'), dtype=DataType(name='bool', np=dtype('bool'), nbytes=1)), Assign(name='v1__u2', op=ElementwiseImpl('multiply'), args=('in1__u2', 'v0__u2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in0__u3',), input='gt_c1', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__u3',), input='x', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=4, dtype='int')), right=Literal(value=3, dtype='int')),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__u3', op=ElementwiseImpl('greater'), args=('in1__u3', 'in0__u3'), dtype=DataType(name='bool', np=dtype('bool'), nbytes=1)), Assign(name='v1__u3', op=ElementwiseImpl('multiply'), args=('in1__u3', 'v0__u3'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Write(output='mul', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=4, dtype='int')), right=Literal(value=0, dtype='int')),), values=('v1__u0', 'v1__u1', 'v1__u2', 'v1__u3'), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE')), block_threads=None, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_mul_pointwise",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "gt_c1",
+        "x"
+      ],
+      "outputs": [
+        {
+          "name": "mul",
+          "shape": [
+            2048
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

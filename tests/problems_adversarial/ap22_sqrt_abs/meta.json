@@ -1,0 +1,53 @@
+{
+ "id": "ap22_sqrt_abs",
+ "code": "torch.sqrt(torch.abs(torch.randn(4096)))",
+ "rtol": 1e-05,
+ "atol": 1e-06,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "sqrt"
+ ],
+ "kernels": [
+  {
+   "node": "sqrt",
+   "entry": "k_sqrt_pointwise",
+   "arg_order": [
+    "x",
+    "sqrt"
+   ],
+   "grid": [
+    4,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      4096
+     ],
+     "seed": 0
+    },
+    {
+     "name": "sqrt",
+     "dtype": "f32",
+     "shape": [
+      4096
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

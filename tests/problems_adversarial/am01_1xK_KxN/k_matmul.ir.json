@@ -1,0 +1,66 @@
+{
+  "inputs": [
+    "x0",
+    "x1"
+  ],
+  "outputs": [
+    "matmul"
+  ],
+  "nodes": {
+    "x0": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x0",
+          "shape": [
+            1,
+            64
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "x1": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x1",
+          "shape": [
+            64,
+            48
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "matmul": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='_a1_ks', extent=Dim(2), window=None), Axis(name='_um', extent=Dim(1), window=None), Axis(name='a0', extent=Dim(48), window=None), Axis(name='a1_co', extent=Dim(128), window=None)), body=(StridedLoop(axis=Axis(name='a1', extent=Dim(32), window=Window(parent=Axis(name='a1', extent=Dim(64), window=None), base=None, bound=None, partition=True)), start=Var(name='a1_co'), step=Literal(value=128, dtype='int'), body=(Load(names=('in0',), input='x0', index=(Literal(value=0, dtype='int'), BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='_a1_ks'), right=Literal(value=32, dtype='int')), right=Var(name='a1'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1',), input='x1', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='_a1_ks'), right=Literal(value=32, dtype='int')), right=Var(name='a1')), Var(name='a0')), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0', op=ElementwiseImpl('multiply'), args=('in0', 'in1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc0', value='v0', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a1',), base=None)), unroll=False, end=None, seed=True), WarpShuffle(state=('acc0',), state_b=('acc0__o',), combine_states=(Assign(name='acc0', op=ElementwiseImpl('add'), args=('acc0', 'acc0__o'), dtype=None),), length=32, dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Smem(name='acc0_smem', extents=(4,), dtype='float', align=0), Cond(cond=BinaryExpr(op='==', left=Var(name='lane'), right=Literal(value=0, dtype='int')), body=(Write(output='acc0_smem', index=(Var(name='warp'),), values=('acc0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE'),), else_body=()), Sync(barrier_id=0, count=None, warp=False), TreeHalve(bufs=('acc0_smem',), state=('acc0',), state_b=('acc0__o',), combine_states=(Assign(name='acc0', op=ElementwiseImpl('add'), args=('acc0', 'acc0__o'), dtype=None),), length=4, tid_var='warp', dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), barrier_id=0, barrier_count=None, inner=None), Cond(cond=BinaryExpr(op='==', left=Var(name='a1_co'), right=Literal(value=0, dtype='int')), body=(Write(output='matmul', index=(Literal(value=0, dtype='int'), Var(name='a0')), values=('acc0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=True, swizzle='NONE'),), else_body=())), block_threads=128, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_matmul",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "x1",
+        "x0"
+      ],
+      "outputs": [
+        {
+          "name": "matmul",
+          "shape": [
+            1,
+            48
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

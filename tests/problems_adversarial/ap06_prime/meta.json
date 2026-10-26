@@ -1,0 +1,63 @@
+{
+ "id": "ap06_prime",
+ "code": "torch.randn(100003) + torch.randn(100003)",
+ "rtol": 0,
+ "atol": 0,
+ "graph_inputs": [
+  "x0",
+  "x1"
+ ],
+ "graph_outputs": [
+  "add"
+ ],
+ "kernels": [
+  {
+   "node": "add",
+   "entry": "k_add_pointwise",
+   "arg_order": [
+    "x0",
+    "x1",
+    "add"
+   ],
+   "grid": [
+    391,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "x0",
+     "dtype": "f32",
+     "shape": [
+      100003
+     ],
+     "seed": 0
+    },
+    {
+     "name": "x1",
+     "dtype": "f32",
+     "shape": [
+      100003
+     ],
+     "seed": 1
+    },
+    {
+     "name": "add",
+     "dtype": "f32",
+     "shape": [
+      100003
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

@@ -1,0 +1,65 @@
+{
+ "id": "ar10_first_axis_odd",
+ "code": "torch.randn(301, 5).mean(0)",
+ "rtol": 0.0001,
+ "atol": 0.0001,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "mean"
+ ],
+ "kernels": [
+  {
+   "node": "mean",
+   "entry": "k_mean_84dafb",
+   "arg_order": [
+    "mean_keepdim_count",
+    "x",
+    "mean"
+   ],
+   "grid": [
+    5,
+    1,
+    1
+   ],
+   "block": [
+    128,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "mean_keepdim_count",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      301.0
+     ]
+    },
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      301,
+      5
+     ],
+     "seed": 0
+    },
+    {
+     "name": "mean",
+     "dtype": "f32",
+     "shape": [
+      5
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

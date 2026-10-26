@@ -1,0 +1,64 @@
+{
+ "id": "ap30_clamp_one_side",
+ "code": "torch.clamp(torch.randn(3000), max=0.25)",
+ "rtol": 0,
+ "atol": 0,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "clamp"
+ ],
+ "kernels": [
+  {
+   "node": "clamp",
+   "entry": "k_clamp_pointwise",
+   "arg_order": [
+    "clamp_bound0",
+    "x",
+    "clamp"
+   ],
+   "grid": [
+    3,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "clamp_bound0",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      0.25
+     ]
+    },
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      3000
+     ],
+     "seed": 0
+    },
+    {
+     "name": "clamp",
+     "dtype": "f32",
+     "shape": [
+      3000
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

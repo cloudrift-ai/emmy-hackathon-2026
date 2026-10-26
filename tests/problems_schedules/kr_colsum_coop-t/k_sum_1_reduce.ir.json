@@ -1,0 +1,48 @@
+{
+  "inputs": [
+    "x"
+  ],
+  "outputs": [
+    "sum_1"
+  ],
+  "nodes": {
+    "x": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x",
+          "shape": [
+            999,
+            40
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "sum_1": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='a0_blk', extent=Dim(2), window=Window(parent=Axis(name='a0', extent=Dim(40), window=None), base=None, bound=None, partition=False)), Axis(name='a1_co', extent=Dim(4), window=None), Axis(name='a0_ln', extent=Dim(32), window=None)), body=(StridedLoop(axis=Axis(name='a1', extent=Dim(999), window=None), start=Var(name='a1_co'), step=Literal(value=4, dtype='int'), body=(Load(names=('in0',), input='x', index=(Var(name='a1'), TernaryExpr(cond=BinaryExpr(op='<', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0_blk'), right=Literal(value=32, dtype='int')), right=Var(name='a0_ln')), right=Literal(value=40, dtype='int')), if_true=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0_blk'), right=Literal(value=32, dtype='int')), right=Var(name='a0_ln')), if_false=BinaryExpr(op='-', left=Literal(value=40, dtype='int'), right=Literal(value=1, dtype='int')))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc0', value='in0', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a1',), base=None)), unroll=False, end=None, seed=True), Smem(name='acc0_smem', extents=(128,), dtype='float', align=0), Write(output='acc0_smem', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1_co'), right=Literal(value=32, dtype='int')), right=Var(name='a0_ln')),), values=('acc0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE'), Sync(barrier_id=0, count=None, warp=False), TreeHalve(bufs=('acc0_smem',), state=('acc0',), state_b=('acc0__o',), combine_states=(Assign(name='acc0', op=ElementwiseImpl('add'), args=('acc0', 'acc0__o'), dtype=None),), length=4, tid_var='a1_co', dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), barrier_id=0, barrier_count=None, inner=('a0_ln', 32)), Cond(cond=BinaryExpr(op='==', left=Var(name='a1_co'), right=Literal(value=0, dtype='int')), body=(Cond(cond=BinaryExpr(op='<', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0_blk'), right=Literal(value=32, dtype='int')), right=Var(name='a0_ln')), right=Literal(value=40, dtype='int')), body=(Write(output='sum_1', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0_blk'), right=Literal(value=32, dtype='int')), right=Var(name='a0_ln')),), values=('acc0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE'),), else_body=()),), else_body=())), block_threads=128, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_sum_1_reduce",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "x"
+      ],
+      "outputs": [
+        {
+          "name": "sum_1",
+          "shape": [
+            40
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+ "id": "af12_center_scale",
+ "code": "x = torch.randn(50, 257); (x - x.mean(-1, keepdim=True)) * torch.sigmoid(x.amax(-1, keepdim=True))",
+ "rtol": 0.001,
+ "atol": 0.0001,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "mul"
+ ],
+ "kernels": [
+  {
+   "node": "mul",
+   "entry": "k_mean_dac966",
+   "arg_order": [
+    "mean_count",
+    "x",
+    "mul"
+   ],
+   "grid": [
+    50,
+    1,
+    1
+   ],
+   "block": [
+    128,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "mean_count",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      257.0
+     ]
+    },
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      50,
+      257
+     ],
+     "seed": 0
+    },
+    {
+     "name": "mul",
+     "dtype": "f32",
+     "shape": [
+      50,
+      257
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

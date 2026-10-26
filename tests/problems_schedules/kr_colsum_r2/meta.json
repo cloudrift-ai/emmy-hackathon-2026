@@ -1,0 +1,54 @@
+{
+ "id": "kr_colsum_r2",
+ "code": "torch.randn(999, 40).sum(0)",
+ "rtol": 0.0001,
+ "atol": 0.0001,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "sum_1"
+ ],
+ "kernels": [
+  {
+   "node": "sum_1",
+   "entry": "k_sum_1_reduce",
+   "arg_order": [
+    "x",
+    "sum_1"
+   ],
+   "grid": [
+    1,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      999,
+      40
+     ],
+     "seed": 0
+    },
+    {
+     "name": "sum_1",
+     "dtype": "f32",
+     "shape": [
+      40
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

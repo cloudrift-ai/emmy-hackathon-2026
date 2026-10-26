@@ -1,0 +1,63 @@
+{
+  "inputs": [
+    "x0",
+    "x1"
+  ],
+  "outputs": [
+    "add"
+  ],
+  "nodes": {
+    "x0": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x0",
+          "shape": [
+            1000
+          ],
+          "dtype": "f16"
+        }
+      ]
+    },
+    "x1": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x1",
+          "shape": [
+            1000
+          ],
+          "dtype": "f16"
+        }
+      ]
+    },
+    "add": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='a0', extent=Dim(500), window=None),), body=(Load(names=('in0__u0',), input='x0', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=2, dtype='int')), right=Literal(value=0, dtype='int')),), dtype=DataType(name='f16', np=dtype('float16'), nbytes=2)), Load(names=('in1__u0',), input='x1', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=2, dtype='int')), right=Literal(value=0, dtype='int')),), dtype=DataType(name='f16', np=dtype('float16'), nbytes=2)), Assign(name='v0__u0', op=ElementwiseImpl('add'), args=('in0__u0', 'in1__u0'), dtype=DataType(name='f16', np=dtype('float16'), nbytes=2)), Load(names=('in0__u1',), input='x0', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=2, dtype='int')), right=Literal(value=1, dtype='int')),), dtype=DataType(name='f16', np=dtype('float16'), nbytes=2)), Load(names=('in1__u1',), input='x1', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=2, dtype='int')), right=Literal(value=1, dtype='int')),), dtype=DataType(name='f16', np=dtype('float16'), nbytes=2)), Assign(name='v0__u1', op=ElementwiseImpl('add'), args=('in0__u1', 'in1__u1'), dtype=DataType(name='f16', np=dtype('float16'), nbytes=2)), Write(output='add', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=2, dtype='int')), right=Literal(value=0, dtype='int')),), values=('v0__u0', 'v0__u1'), value_dtype=DataType(name='f16', np=dtype('float16'), nbytes=2), atomic=False, swizzle='NONE')), block_threads=None, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_add_pointwise",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "x0",
+        "x1"
+      ],
+      "outputs": [
+        {
+          "name": "add",
+          "shape": [
+            1000
+          ],
+          "dtype": "f16"
+        }
+      ]
+    }
+  }
+}

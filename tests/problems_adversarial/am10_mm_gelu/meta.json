@@ -1,0 +1,175 @@
+{
+ "id": "am10_mm_gelu",
+ "code": "a = torch.randn(64, 96); b = torch.randn(96, 80); torch.nn.functional.gelu(a @ b)",
+ "rtol": 0.001,
+ "atol": 0.001,
+ "graph_inputs": [
+  "a",
+  "b"
+ ],
+ "graph_outputs": [
+  "gelu"
+ ],
+ "kernels": [
+  {
+   "node": "gelu__partial",
+   "entry": "k_gelu__partial",
+   "arg_order": [
+    "gelu_inv_sqrt2",
+    "gelu_half",
+    "gelu_one",
+    "b",
+    "a",
+    "gelu__partial"
+   ],
+   "grid": [
+    192,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "gelu_inv_sqrt2",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      0.7071067811865475
+     ]
+    },
+    {
+     "name": "gelu_half",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      0.5
+     ]
+    },
+    {
+     "name": "gelu_one",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      1.0
+     ]
+    },
+    {
+     "name": "b",
+     "dtype": "f32",
+     "shape": [
+      96,
+      80
+     ],
+     "seed": 1
+    },
+    {
+     "name": "a",
+     "dtype": "f32",
+     "shape": [
+      64,
+      96
+     ],
+     "seed": 0
+    },
+    {
+     "name": "gelu__partial",
+     "dtype": "f32",
+     "shape": [
+      32,
+      64,
+      80
+     ],
+     "output": true
+    }
+   ],
+   "final": false
+  },
+  {
+   "node": "gelu",
+   "entry": "k_gelu",
+   "arg_order": [
+    "gelu__partial",
+    "gelu_inv_sqrt2",
+    "gelu_half",
+    "gelu_one",
+    "gelu"
+   ],
+   "grid": [
+    20,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "gelu__partial",
+     "dtype": "f32",
+     "shape": [
+      32,
+      64,
+      80
+     ],
+     "intermediate": true
+    },
+    {
+     "name": "gelu_inv_sqrt2",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      0.7071067811865475
+     ]
+    },
+    {
+     "name": "gelu_half",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      0.5
+     ]
+    },
+    {
+     "name": "gelu_one",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      1.0
+     ]
+    },
+    {
+     "name": "gelu",
+     "dtype": "f32",
+     "shape": [
+      64,
+      80
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

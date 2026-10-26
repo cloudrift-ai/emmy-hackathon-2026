@@ -1,0 +1,70 @@
+{
+  "inputs": [
+    "x"
+  ],
+  "outputs": [
+    "mean"
+  ],
+  "nodes": {
+    "mean_keepdim_count": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "mean_keepdim_count",
+        "value": 4099.0,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "mean_keepdim_count",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "x": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x",
+          "shape": [
+            4099
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "mean": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='a0_co', extent=Dim(128), window=None),), body=(StridedLoop(axis=Axis(name='a0', extent=Dim(4099), window=None), start=Var(name='a0_co'), step=Literal(value=128, dtype='int'), body=(Load(names=('in0',), input='x', index=(Var(name='a0'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0', op=ElementwiseImpl('multiply'), args=('in0', 'in0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc0', value='v0', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a0',), base=None)), unroll=False, end=None, seed=True), WarpShuffle(state=('acc0',), state_b=('acc0__o',), combine_states=(Assign(name='acc0', op=ElementwiseImpl('add'), args=('acc0', 'acc0__o'), dtype=None),), length=32, dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Smem(name='acc0_smem', extents=(4,), dtype='float', align=0), Cond(cond=BinaryExpr(op='==', left=Var(name='lane'), right=Literal(value=0, dtype='int')), body=(Write(output='acc0_smem', index=(Var(name='warp'),), values=('acc0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE'),), else_body=()), Sync(barrier_id=0, count=None, warp=False), TreeHalve(bufs=('acc0_smem',), state=('acc0',), state_b=('acc0__o',), combine_states=(Assign(name='acc0', op=ElementwiseImpl('add'), args=('acc0', 'acc0__o'), dtype=None),), length=4, tid_var='warp', dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), barrier_id=0, barrier_count=None, inner=None), Cond(cond=BinaryExpr(op='==', left=Var(name='a0_co'), right=Literal(value=0, dtype='int')), body=(Load(names=('in1',), input='mean_keepdim_count', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v1', op=ElementwiseImpl('divide'), args=('acc0', 'in1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Write(output='mean', index=(), values=('v1',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE')), else_body=())), block_threads=128, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_mean_139024",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "x",
+        "mean_keepdim_count"
+      ],
+      "outputs": [
+        {
+          "name": "mean",
+          "shape": [],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "inputs": [
+    "x"
+  ],
+  "outputs": [
+    "tril"
+  ],
+  "nodes": {
+    "tril_zero": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "tril_zero",
+        "value": 0.0,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "tril_zero",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "x": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x",
+          "shape": [
+            33,
+            33
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "tril": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='a0', extent=Dim(33), window=None), Axis(name='a1', extent=Dim(11), window=None)), body=(Load(names=('in0__u0',), input='tril_zero', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__u0',), input='x', index=(Var(name='a0'), BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1'), right=Literal(value=3, dtype='int')), right=Literal(value=0, dtype='int'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in0__u1',), input='tril_zero', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__u1',), input='x', index=(Var(name='a0'), BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1'), right=Literal(value=3, dtype='int')), right=Literal(value=1, dtype='int'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in0__u2',), input='tril_zero', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__u2',), input='x', index=(Var(name='a0'), BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1'), right=Literal(value=3, dtype='int')), right=Literal(value=2, dtype='int'))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Select(name='v0__u0', branches=(SelectBranch(value='in1__u0', select=BinaryExpr(op='<=', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1'), right=Literal(value=3, dtype='int')), right=Literal(value=0, dtype='int')), right=Var(name='a0'))), SelectBranch(value='in0__u0', select=Literal(value=True, dtype='bool')))), Select(name='v0__u1', branches=(SelectBranch(value='in1__u1', select=BinaryExpr(op='<=', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1'), right=Literal(value=3, dtype='int')), right=Literal(value=1, dtype='int')), right=Var(name='a0'))), SelectBranch(value='in0__u1', select=Literal(value=True, dtype='bool')))), Select(name='v0__u2', branches=(SelectBranch(value='in1__u2', select=BinaryExpr(op='<=', left=BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1'), right=Literal(value=3, dtype='int')), right=Literal(value=2, dtype='int')), right=Var(name='a0'))), SelectBranch(value='in0__u2', select=Literal(value=True, dtype='bool')))), Write(output='tril', index=(Var(name='a0'), BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1'), right=Literal(value=3, dtype='int')), right=Literal(value=0, dtype='int'))), values=('v0__u0',), value_dtype=None, atomic=False, swizzle='NONE'), Write(output='tril', index=(Var(name='a0'), BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1'), right=Literal(value=3, dtype='int')), right=Literal(value=1, dtype='int'))), values=('v0__u1',), value_dtype=None, atomic=False, swizzle='NONE'), Write(output='tril', index=(Var(name='a0'), BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a1'), right=Literal(value=3, dtype='int')), right=Literal(value=2, dtype='int'))), values=('v0__u2',), value_dtype=None, atomic=False, swizzle='NONE')), block_threads=None, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_tril_pointwise",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "x",
+        "tril_zero"
+      ],
+      "outputs": [
+        {
+          "name": "tril",
+          "shape": [
+            33,
+            33
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

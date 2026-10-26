@@ -1,0 +1,147 @@
+{
+  "inputs": [
+    "x"
+  ],
+  "outputs": [
+    "gelu"
+  ],
+  "nodes": {
+    "gelu_c0": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "gelu_c0",
+        "value": 0.7978845608028654,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "gelu_c0",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "gelu_c1": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "gelu_c1",
+        "value": 0.044715,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "gelu_c1",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "gelu_half": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "gelu_half",
+        "value": 0.5,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "gelu_half",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "gelu_one": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "gelu_one",
+        "value": 1.0,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "gelu_one",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "x": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x",
+          "shape": [
+            4096
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "gelu": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='a0', extent=Dim(1024), window=None),), body=(Load(names=('in4__u0',), input='x', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=4, dtype='int')), right=Literal(value=0, dtype='int')),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__u0', op=ElementwiseImpl('multiply'), args=('in4__u0', 'in4__u0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v1__u0', op=ElementwiseImpl('multiply'), args=('in4__u0', 'v0__u0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__u0',), input='gelu_c1', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v2__u0', op=ElementwiseImpl('multiply'), args=('in1__u0', 'v1__u0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v3__u0', op=ElementwiseImpl('add'), args=('in4__u0', 'v2__u0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in0__u0',), input='gelu_c0', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v4__u0', op=ElementwiseImpl('multiply'), args=('in0__u0', 'v3__u0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in2__u0',), input='gelu_half', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v5__u0', op=ElementwiseImpl('multiply'), args=('in2__u0', 'in4__u0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v6__u0', op=ElementwiseImpl('tanh'), args=('v4__u0',), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in3__u0',), input='gelu_one', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v7__u0', op=ElementwiseImpl('add'), args=('in3__u0', 'v6__u0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v8__u0', op=ElementwiseImpl('multiply'), args=('v5__u0', 'v7__u0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in4__u1',), input='x', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=4, dtype='int')), right=Literal(value=1, dtype='int')),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__u1', op=ElementwiseImpl('multiply'), args=('in4__u1', 'in4__u1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v1__u1', op=ElementwiseImpl('multiply'), args=('in4__u1', 'v0__u1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__u1',), input='gelu_c1', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v2__u1', op=ElementwiseImpl('multiply'), args=('in1__u1', 'v1__u1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v3__u1', op=ElementwiseImpl('add'), args=('in4__u1', 'v2__u1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in0__u1',), input='gelu_c0', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v4__u1', op=ElementwiseImpl('multiply'), args=('in0__u1', 'v3__u1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in2__u1',), input='gelu_half', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v5__u1', op=ElementwiseImpl('multiply'), args=('in2__u1', 'in4__u1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v6__u1', op=ElementwiseImpl('tanh'), args=('v4__u1',), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in3__u1',), input='gelu_one', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v7__u1', op=ElementwiseImpl('add'), args=('in3__u1', 'v6__u1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v8__u1', op=ElementwiseImpl('multiply'), args=('v5__u1', 'v7__u1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in4__u2',), input='x', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=4, dtype='int')), right=Literal(value=2, dtype='int')),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__u2', op=ElementwiseImpl('multiply'), args=('in4__u2', 'in4__u2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v1__u2', op=ElementwiseImpl('multiply'), args=('in4__u2', 'v0__u2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__u2',), input='gelu_c1', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v2__u2', op=ElementwiseImpl('multiply'), args=('in1__u2', 'v1__u2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v3__u2', op=ElementwiseImpl('add'), args=('in4__u2', 'v2__u2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in0__u2',), input='gelu_c0', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v4__u2', op=ElementwiseImpl('multiply'), args=('in0__u2', 'v3__u2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in2__u2',), input='gelu_half', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v5__u2', op=ElementwiseImpl('multiply'), args=('in2__u2', 'in4__u2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v6__u2', op=ElementwiseImpl('tanh'), args=('v4__u2',), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in3__u2',), input='gelu_one', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v7__u2', op=ElementwiseImpl('add'), args=('in3__u2', 'v6__u2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v8__u2', op=ElementwiseImpl('multiply'), args=('v5__u2', 'v7__u2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in4__u3',), input='x', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=4, dtype='int')), right=Literal(value=3, dtype='int')),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0__u3', op=ElementwiseImpl('multiply'), args=('in4__u3', 'in4__u3'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v1__u3', op=ElementwiseImpl('multiply'), args=('in4__u3', 'v0__u3'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in1__u3',), input='gelu_c1', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v2__u3', op=ElementwiseImpl('multiply'), args=('in1__u3', 'v1__u3'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v3__u3', op=ElementwiseImpl('add'), args=('in4__u3', 'v2__u3'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in0__u3',), input='gelu_c0', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v4__u3', op=ElementwiseImpl('multiply'), args=('in0__u3', 'v3__u3'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in2__u3',), input='gelu_half', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v5__u3', op=ElementwiseImpl('multiply'), args=('in2__u3', 'in4__u3'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v6__u3', op=ElementwiseImpl('tanh'), args=('v4__u3',), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in3__u3',), input='gelu_one', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v7__u3', op=ElementwiseImpl('add'), args=('in3__u3', 'v6__u3'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v8__u3', op=ElementwiseImpl('multiply'), args=('v5__u3', 'v7__u3'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Write(output='gelu', index=(BinaryExpr(op='+', left=BinaryExpr(op='*', left=Var(name='a0'), right=Literal(value=4, dtype='int')), right=Literal(value=0, dtype='int')),), values=('v8__u0', 'v8__u1', 'v8__u2', 'v8__u3'), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE')), block_threads=None, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_gelu_pointwise",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "gelu_c1",
+        "gelu_c0",
+        "gelu_one",
+        "gelu_half",
+        "x"
+      ],
+      "outputs": [
+        {
+          "name": "gelu",
+          "shape": [
+            4096
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

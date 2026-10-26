@@ -1,0 +1,64 @@
+{
+ "id": "ar16_sumsq_mean",
+ "code": "x = torch.randn(4099); (x * x).mean()",
+ "rtol": 0.0001,
+ "atol": 0.0001,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "mean"
+ ],
+ "kernels": [
+  {
+   "node": "mean",
+   "entry": "k_mean_139024",
+   "arg_order": [
+    "x",
+    "mean_keepdim_count",
+    "mean"
+   ],
+   "grid": [
+    1,
+    1,
+    1
+   ],
+   "block": [
+    128,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      4099
+     ],
+     "seed": 0
+    },
+    {
+     "name": "mean_keepdim_count",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      4099.0
+     ]
+    },
+    {
+     "name": "mean",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

@@ -1,0 +1,64 @@
+{
+ "id": "ap32_chain",
+ "code": "x = torch.randn(1000); torch.sigmoid(x) * torch.tanh(x) + torch.relu(-x) / (torch.abs(x) + 1.0)",
+ "rtol": 1e-05,
+ "atol": 1e-06,
+ "graph_inputs": [
+  "x"
+ ],
+ "graph_outputs": [
+  "add_1"
+ ],
+ "kernels": [
+  {
+   "node": "add_1",
+   "entry": "k_add_1_pointwise",
+   "arg_order": [
+    "add_c1",
+    "x",
+    "add_1"
+   ],
+   "grid": [
+    2,
+    1,
+    1
+   ],
+   "block": [
+    256,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "add_c1",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      1.0
+     ]
+    },
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      1000
+     ],
+     "seed": 0
+    },
+    {
+     "name": "add_1",
+     "dtype": "f32",
+     "shape": [
+      1000
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

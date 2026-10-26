@@ -1,0 +1,110 @@
+{
+ "id": "aa06_causal",
+ "code": "q = torch.randn(48, 32); kt = torch.randn(32, 48); v = torch.randn(48, 32); s = q @ kt / 5.656854; torch.softmax(s.masked_fill(torch.triu(torch.ones(48, 48), diagonal=1) > 0, float('-inf')), dim=-1) @ v",
+ "rtol": 0.001,
+ "atol": 0.0001,
+ "graph_inputs": [
+  "s",
+  "x",
+  "v"
+ ],
+ "graph_outputs": [
+  "matmul"
+ ],
+ "kernels": [
+  {
+   "node": "matmul",
+   "entry": "k_matmul_softmax_reduce_072031",
+   "arg_order": [
+    "triu_zero",
+    "gt_c1",
+    "masked_fill_c2",
+    "x",
+    "s",
+    "v",
+    "matmul"
+   ],
+   "grid": [
+    1536,
+    1,
+    1
+   ],
+   "block": [
+    128,
+    1,
+    1
+   ],
+   "smem_bytes": 0,
+   "zero_outputs": [],
+   "args": [
+    {
+     "name": "triu_zero",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      0.0
+     ]
+    },
+    {
+     "name": "gt_c1",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      0.0
+     ]
+    },
+    {
+     "name": "masked_fill_c2",
+     "dtype": "f32",
+     "shape": [
+      1
+     ],
+     "data": [
+      -Infinity
+     ]
+    },
+    {
+     "name": "x",
+     "dtype": "f32",
+     "shape": [
+      48,
+      48
+     ],
+     "seed": 1
+    },
+    {
+     "name": "s",
+     "dtype": "f32",
+     "shape": [
+      48,
+      48
+     ],
+     "seed": 0
+    },
+    {
+     "name": "v",
+     "dtype": "f32",
+     "shape": [
+      48,
+      32
+     ],
+     "seed": 2
+    },
+    {
+     "name": "matmul",
+     "dtype": "f32",
+     "shape": [
+      48,
+      32
+     ],
+     "output": true
+    }
+   ],
+   "final": true
+  }
+ ]
+}

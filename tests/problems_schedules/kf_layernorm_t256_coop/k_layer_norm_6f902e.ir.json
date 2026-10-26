@@ -1,0 +1,124 @@
+{
+  "inputs": [
+    "x"
+  ],
+  "outputs": [
+    "layer_norm"
+  ],
+  "nodes": {
+    "layer_norm_eps": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "layer_norm_eps",
+        "value": 1e-05,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "layer_norm_eps",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "layer_norm_mean_count": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "layer_norm_mean_count",
+        "value": 300.0,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "layer_norm_mean_count",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "layer_norm_var_count": {
+      "op": "ConstantOp",
+      "op_fields": {
+        "name": "layer_norm_var_count",
+        "value": 300.0,
+        "context_value": null,
+        "load_ops": [],
+        "source_path": null,
+        "source_parts": [],
+        "source_shape": null,
+        "source_dtype": null,
+        "source_graph": null
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "layer_norm_var_count",
+          "shape": [
+            1
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "x": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x",
+          "shape": [
+            19,
+            300
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "layer_norm": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='a0', extent=Dim(19), window=None), Axis(name='a1_co', extent=Dim(256), window=None)), body=(StridedLoop(axis=Axis(name='a1', extent=Dim(300), window=None), start=Var(name='a1_co'), step=Literal(value=256, dtype='int'), body=(Load(names=('in3',), input='x', index=(Var(name='a0'), Var(name='a1')), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc0', value='in3', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a1',), base=None)), unroll=False, end=None, seed=True), WarpShuffle(state=('acc0',), state_b=('acc0__o',), combine_states=(Assign(name='acc0', op=ElementwiseImpl('add'), args=('acc0', 'acc0__o'), dtype=None),), length=32, dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Smem(name='acc0_smem', extents=(8,), dtype='float', align=0), Cond(cond=BinaryExpr(op='==', left=Var(name='lane'), right=Literal(value=0, dtype='int')), body=(Write(output='acc0_smem', index=(Var(name='warp'),), values=('acc0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE'),), else_body=()), Sync(barrier_id=0, count=None, warp=False), TreeHalve(bufs=('acc0_smem',), state=('acc0',), state_b=('acc0__o',), combine_states=(Assign(name='acc0', op=ElementwiseImpl('add'), args=('acc0', 'acc0__o'), dtype=None),), length=8, tid_var='warp', dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), barrier_id=0, barrier_count=None, inner=None), Load(names=('in1',), input='layer_norm_mean_count', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v0', op=ElementwiseImpl('reciprocal'), args=('in1',), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v2', op=ElementwiseImpl('multiply'), args=('acc0', 'v0'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Loop(axis=Axis(name='a1', extent=Dim(300), window=None), body=(Load(names=('in4',), input='x', index=(Var(name='a0'), Var(name='a1')), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v3', op=ElementwiseImpl('subtract'), args=('in4', 'v2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v4', op=ElementwiseImpl('multiply'), args=('v3', 'v3'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc1', value='v4', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a1',), base=None)), unroll=False, seed=True), Load(names=('in2',), input='layer_norm_var_count', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v1', op=ElementwiseImpl('reciprocal'), args=('in2',), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v5', op=ElementwiseImpl('multiply'), args=('acc1', 'v1'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Load(names=('in0',), input='layer_norm_eps', index=(Literal(value=0, dtype='int'),), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v6', op=ElementwiseImpl('add'), args=('in0', 'v5'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v7', op=ElementwiseImpl('rsqrt'), args=('v6',), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), StridedLoop(axis=Axis(name='a3', extent=Dim(300), window=None), start=Var(name='a1_co'), step=Literal(value=256, dtype='int'), body=(Load(names=('in5',), input='x', index=(Var(name='a0'), Var(name='a3')), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v8', op=ElementwiseImpl('subtract'), args=('in5', 'v2'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Assign(name='v9', op=ElementwiseImpl('multiply'), args=('v7', 'v8'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Write(output='layer_norm', index=(Var(name='a0'), Var(name='a3')), values=('v9',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=False, swizzle='NONE')), unroll=False, end=None, seed=True)), block_threads=256, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_layer_norm_6f902e",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "layer_norm_var_count",
+        "layer_norm_mean_count",
+        "layer_norm_eps",
+        "x"
+      ],
+      "outputs": [
+        {
+          "name": "layer_norm",
+          "shape": [
+            19,
+            300
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}

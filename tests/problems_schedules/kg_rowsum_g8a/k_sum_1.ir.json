@@ -1,0 +1,48 @@
+{
+  "inputs": [
+    "x"
+  ],
+  "outputs": [
+    "sum_1"
+  ],
+  "nodes": {
+    "x": {
+      "op": "InputOp",
+      "op_fields": {},
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "x",
+          "shape": [
+            37,
+            1024
+          ],
+          "dtype": "f32"
+        }
+      ]
+    },
+    "sum_1": {
+      "op": "KernelOp",
+      "op_fields": {
+        "body": [
+          "Tile(axes=(Axis(name='_ksplit', extent=Dim(8), window=None), Axis(name='a0', extent=Dim(37), window=None)), body=(Loop(axis=Axis(name='a1', extent=Dim(128), window=Window(parent=Axis(name='a1', extent=Dim(1024), window=None), base=None, bound=None, partition=True)), body=(Load(names=('in0',), input='x', index=(Var(name='a0'), BinaryExpr(op='+', left=Var(name='a1'), right=BinaryExpr(op='*', left=Var(name='_ksplit'), right=Literal(value=128, dtype='int')))), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4)), Accum(name='acc0', value='in0', op=ElementwiseImpl('add'), dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), axes=('a1',), base=None)), unroll=False, seed=True), Write(output='sum_1', index=(Var(name='a0'),), values=('acc0',), value_dtype=DataType(name='f32', np=dtype('float32'), nbytes=4), atomic=True, swizzle='NONE')), block_threads=None, aux_threads=0, raster_axes=None, raster_group=None, raster_orient='m')"
+        ],
+        "name": "k_sum_1",
+        "zero_delegated": [],
+        "serial": []
+      },
+      "inputs": [
+        "x"
+      ],
+      "outputs": [
+        {
+          "name": "sum_1",
+          "shape": [
+            37
+          ],
+          "dtype": "f32"
+        }
+      ]
+    }
+  }
+}
