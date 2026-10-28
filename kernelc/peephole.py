@@ -9,16 +9,16 @@ from __future__ import annotations
 
 import re
 
-_LOAD = re.compile(r"^\tld\.(global\.nc|shared)\.(f32|s32|u32|b32)\t(%\w+), \[(%\w+)(?:\+(-?\d+))?\];$")
+_LOAD = re.compile(r"^\tld\.(global\.nc|shared)\.(f32|f64|s32|u32|b32)\t(%\w+), \[(%\w+)(?:\+(-?\d+))?\];$")
 _BARRIER = re.compile(r"^(\$\S+:|\t(@\S+ )?(bra|ret|bar|st\.|red\.|atom\.|cp\.async|membar|fence))")
-_WIDTH = 4
+_WIDTH = {"f32": 4, "f64": 8, "s32": 4, "u32": 4, "b32": 4}
 
 
 def _block_safe(lines: list[str], lo: int, hi: int, space: str) -> bool:
     for line in lines[lo + 1:hi]:
         if line is None:
             continue
-        if line.startswith("$") or line.startswith("\t@") or line.startswith("\tbra") or line.startswith("\tret"):
+        if line.startswith(("$", "\t@", "\tbra", "\tret")):
             return False
         if space == "shared" and _BARRIER.match(line):
             return False
@@ -43,9 +43,13 @@ def vectorize_loads(lines: list[str], align: dict[str, int]) -> tuple[list[str],
         for off in sorted(by_off):
             if by_off[off][0] in used:
                 continue
-            for n in (4, 2):
-                need = [off + k * _WIDTH for k in range(n)]
-                if (align[base] % (n * _WIDTH)) or (off % (n * _WIDTH)):
+            # PTX has no scalar-to-vector benefit for f64 beyond pairs here;
+            # v2.f64 is 16 bytes and can use the same alignment proof.
+            widths = (2,) if ty == "f64" else (4, 2)
+            for n in widths:
+                width = _WIDTH[ty]
+                need = [off + k * width for k in range(n)]
+                if (align[base] % (n * width)) or (off % (n * width)):
                     continue
                 if not all(o in by_off and by_off[o][0] not in used for o in need):
                     continue

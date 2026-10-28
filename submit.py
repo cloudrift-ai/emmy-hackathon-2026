@@ -18,13 +18,14 @@ import argparse
 import json
 import math
 import subprocess
-import time
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
 import requests
 
+from kernelc.validation import result_array
 
 PROBLEMS = Path(__file__).resolve().parent / "problems"   # works from any directory
 RUNNER = "http://runner.riftstack.ai:48701"
@@ -145,8 +146,10 @@ def main() -> int:
                 return 1
             produced[name] = out["values"]
             if name in expected:
-                got = np.array(out["values"], dtype=np.float32).reshape(expected[name].shape)
                 ref = expected[name]
+                # Preserve the problem's dtype: narrowing f64 or i64 results here
+                # can turn a correct kernel into a false failure.
+                got = result_array(out["values"], ref)
                 if np.allclose(got, ref, rtol=meta["rtol"], atol=meta["atol"]):
                     err = float(np.max(np.abs(got - ref))) if got.size else 0.0
                     print(f"[{k['entry']}] PASS  {name}: max abs err {err:.3e}  "

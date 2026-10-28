@@ -27,12 +27,12 @@ F32 = "DataType(name='f32', np=dtype('float32'), nbytes=4)"
 I64 = "DataType(name='i64', np=dtype('int64'), nbytes=8)"
 
 
-def find_ptxas() -> str:
+def find_ptxas() -> str | None:
     if os.environ.get("PTXAS"):
         return os.environ["PTXAS"]
     hits = glob.glob(os.path.join(sys.prefix, "lib", "python3*", "*-packages", "nvidia", "cuda_nvcc", "bin", "ptxas"))
     hits += glob.glob("/usr/local/lib/python3*/dist-packages/nvidia/cuda_nvcc/bin/ptxas")
-    return hits[0] if hits else (shutil.which("ptxas") or "ptxas")
+    return hits[0] if hits else shutil.which("ptxas")
 
 
 PTXAS = find_ptxas()
@@ -65,11 +65,13 @@ def compile_and_assemble(d: Path) -> tuple[bool, str]:
     if p.returncode:
         return False, "compile error: " + p.stderr.strip().splitlines()[-1]
     (d / "out.ptx").write_text(p.stdout)
-    for arch in ("sm_89", "sm_120"):
-        q = subprocess.run([PTXAS, f"-arch={arch}", str(d / "out.ptx"), "-o", os.devnull], capture_output=True, text=True)
-        if q.returncode:
-            return False, f"ptxas {arch}: " + q.stderr.strip().splitlines()[0]
-    return True, "compiles and assembles"
+    if PTXAS:
+        for arch in ("sm_89", "sm_120"):
+            q = subprocess.run([PTXAS, f"-arch={arch}", str(d / "out.ptx"), "-o", os.devnull], capture_output=True, text=True)
+            if q.returncode:
+                return False, f"ptxas {arch}: " + q.stderr.strip().splitlines()[0]
+        return True, "compiles and assembles"
+    return True, "compiles (ptxas not found, assembly skipped)"
 
 
 def check_run(case: str, d: Path, expected: dict) -> None:

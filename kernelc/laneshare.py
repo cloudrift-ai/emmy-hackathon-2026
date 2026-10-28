@@ -12,7 +12,6 @@ bit-identical; the distributed work drops G times.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 
 LOOPS = ("Loop", "StridedLoop")
