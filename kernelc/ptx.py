@@ -43,7 +43,7 @@ def f32_round(x: float) -> float:
 
 
 def f32_hex(x: float) -> str:
-    return "0f%08X" % int(np.array(x, dtype=np.float32).view(np.uint32))
+    return f"0f{int(np.float32(x).view(np.uint32)):08X}"
 
 
 def imm_f32(x: float) -> Val:
@@ -52,10 +52,14 @@ def imm_f32(x: float) -> Val:
 
 
 def imm_f64(x: float) -> Val:
-    return Val("0d%016X" % int(np.array(x, dtype=np.float64).view(np.uint64)), "f64", float(x))
+    return Val(f"0d{int(np.float64(x).view(np.uint64)):016X}", "f64", float(x))
 
 
 def imm_int(n: int, ty: str = "s32") -> Val:
+    if ty == "u32":
+        n &= 0xFFFFFFFF
+    elif ty == "u64":
+        n &= 0xFFFFFFFFFFFFFFFF
     return Val(str(int(n)), ty, int(n))
 
 
@@ -74,10 +78,11 @@ class Emitter:
     ``ptxas`` performs the real register allocation, so registers are never reused.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, comments: bool = True) -> None:
         self.lines: list[str] = []
         self._counts: dict[str, int] = defaultdict(int)
         self._labels = 0
+        self.comments = comments
 
     def reg(self, ty: str) -> Val:
         prefix = _PREFIX[ty]
@@ -92,7 +97,8 @@ class Emitter:
         self.lines.append(f"\t@{pred} {opcode}\t{', '.join(operands)};")
 
     def comment(self, text: str) -> None:
-        self.lines.append(f"\t// {ascii_only(text)}")
+        if self.comments:
+            self.lines.append(f"\t// {ascii_only(text)}")
 
     def new_label(self, hint: str) -> str:
         self._labels += 1

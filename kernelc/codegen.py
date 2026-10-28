@@ -56,9 +56,9 @@ DTYPES = {
     "bf16": (2, "b16", "f32"),
     "f64": (8, "f64", "f64"),
     "i32": (4, "s32", "s32"),
-    "u32": (4, "u32", "s32"),
+    "u32": (4, "u32", "u32"),
     "i64": (8, "s64", "s64"),
-    "u64": (8, "u64", "s64"),
+    "u64": (8, "u64", "u64"),
     "i16": (2, "s16", "s32"),
     "u16": (2, "u16", "s32"),
     "i8": (1, "s8", "s32"),
@@ -121,7 +121,9 @@ def static_extent(axis) -> int:
 class KernelCompiler:
     def __init__(self, src: KernelSource) -> None:
         self.src = src
-        self.em = Emitter()
+        # Per-statement comments make generated PTX easier to inspect, while
+        # release submissions can skip them to reduce PTX parsing overhead.
+        self.em = Emitter(comments=os.environ.get("KERNELC_COMMENTS") != "0")
         self.fast_math = self._decide_fast_math(src)
         self.ar = Arith(self.em, fast_math=self.fast_math)
         self.align: dict[str, int] = {}  # address register -> byte alignment
@@ -348,8 +350,8 @@ class KernelCompiler:
         raise NotImplementedError(f"expression {k} is not supported")
 
     def _cast(self, v: Val, ctype: str) -> Val:
-        target = {"float": "f32", "int": "s32", "unsigned": "s32", "long long": "s64", "long": "s64",
-                  "double": "f32", "bool": "pred"}.get(ctype)
+        target = {"float": "f32", "int": "s32", "unsigned": "u32", "long long": "s64", "long": "s64",
+                  "double": "f64", "bool": "pred"}.get(ctype)
         if target is not None:
             return self.ar.convert(v, target)
         if ctype in ("__half", "half", "__nv_bfloat16"):
@@ -470,7 +472,7 @@ class KernelCompiler:
             return None, const + int(var.const), 0
         return var, const, max(g, 1)
 
-    def address_of(self, buf: "Buffer", var: Val | None, const: int, g: int, k: int = 0) -> str:
+    def address_of(self, buf: Buffer, var: Val | None, const: int, g: int, k: int = 0) -> str:
         """[reg+imm] for element var + const + k, with one register per var per scope."""
         if var is None:
             return self.address(buf, imm_int(const), k)
@@ -485,9 +487,9 @@ class KernelCompiler:
             else:
                 wide = self.ar.reg("s64")
                 if var.ty in ("s64", "u64"):
-                    self.em.ins("mul.lo.s64", wide.text, var.text, str(es))
+                    self.em.ins(f"mul.lo.{var.ty}", wide.text, var.text, str(es))
                 else:
-                    self.em.ins("mul.wide.s32", wide.text, self.ar.materialize(var).text, str(es))
+                    self.em.ins(f"mul.wide.{var.ty}", wide.text, self.ar.materialize(var).text, str(es))
                 reg = self.ar.reg("u64")
                 self.em.ins("add.s64", reg.text, buf.base.text, wide.text)
             self.align[reg.text] = math.gcd(g * es, buf.align)
@@ -523,9 +525,9 @@ class KernelCompiler:
             return f"[{buf.base.text}+{off}]" if off else f"[{buf.base.text}]"
         wide = self.ar.reg("s64")
         if flat.ty in ("s64", "u64"):
-            self.em.ins("mul.lo.s64", wide.text, flat.text, str(es))
+            self.em.ins(f"mul.lo.{flat.ty}", wide.text, flat.text, str(es))
         else:
-            self.em.ins("mul.wide.s32", wide.text, flat.text, str(es))
+            self.em.ins(f"mul.wide.{flat.ty}", wide.text, flat.text, str(es))
         addr = self.ar.reg("u64")
         self.em.ins("add.s64", addr.text, buf.base.text, wide.text)
         return f"[{addr.text}+{k * es}]" if k else f"[{addr.text}]"
@@ -929,7 +931,7 @@ class KernelCompiler:
     def load_value(self, buf: Buffer, addr: str) -> Val:
         """One scalar load, converted to the register type the value is computed in."""
         ar, em = self.ar, self.em
-        nbytes, ldty, vty = DTYPES[buf.dtype]
+        _, ldty, vty = DTYPES[buf.dtype]
         space = "global.nc" if buf.space == "global" and buf.readonly else buf.space
         if ldty == "b16":
             h, r = ar.reg("b16"), ar.reg("f32")
@@ -942,12 +944,12 @@ class KernelCompiler:
 
     def store_value(self, buf: Buffer, addr: str, val: Val, atomic: bool = False) -> None:
         ar, em = self.ar, self.em
-        nbytes, stty, vty = DTYPES[buf.dtype]
+        _, stty, vty = DTYPES[buf.dtype]
         if atomic:
             if buf.dtype not in ("f32", "i32", "u32"):
                 raise NotImplementedError(f"atomic add on {buf.dtype} is not supported")
             v = ar.materialize(ar.convert(val, vty))
-            em.ins(f"red.{buf.space}.add.{'f32' if vty == 'f32' else 's32'}", addr, v.text)
+            em.ins(f"red.{buf.space}.add.{vty}", addr, v.text)
             return
         if stty == "b16":
             f = ar.materialize(ar.convert(val, "f32"))
@@ -967,7 +969,7 @@ class KernelCompiler:
             return
         var, const, g = self.split_index(s.input, s.index)
         n = len(s.names)
-        if n in (2, 4) and buf.dtype in ("f32", "i32"):
+        if n in (2, 4) and buf.dtype in ("f32", "i32", "u32"):
             vty = DTYPES[buf.dtype][2]
             regs = [self.ar.reg(vty) for _ in range(n)]
             space = "global.nc" if buf.space == "global" and buf.readonly else buf.space
@@ -989,7 +991,7 @@ class KernelCompiler:
             return
         var, const, g = self.split_index(s.output, s.index)
         n = len(vals)
-        if n in (2, 4) and buf.dtype in ("f32", "i32") and not s.atomic:
+        if n in (2, 4) and buf.dtype in ("f32", "i32", "u32") and not s.atomic:
             vty = DTYPES[buf.dtype][2]
             regs = [self.ar.materialize(self.ar.convert(v, vty)) for v in vals]
             self.em.ins(f"st.{buf.space}.v{n}.{DTYPES[buf.dtype][1]}", self.address_of(buf, var, const, g), "{" + ", ".join(r.text for r in regs) + "}")

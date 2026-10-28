@@ -39,7 +39,8 @@ Emmy is used only to load the IR (`Graph.from_dict`). The IR-to-PTX lowering is 
    the `Accum`s in its immediate body. Index expressions are compiled recursively, folded, and
    memoized per scope.
 4b. **Addressing.** An index becomes a base register plus an immediate offset, and the
-   peephole merges neighbouring aligned loads into `.v2`/`.v4`.
+peephole merges neighbouring aligned f32/i32 loads into `.v2`/`.v4` and f64 loads into
+`.v2`.
 4c. **Lane sharing.** In a key loop, statements that depend on the key but not on the
    innermost (lane) axes, such as attention's q.k dot products, are computed once per group of
    G adjacent lanes: lane i computes key chunk*G + i, and `shfl.sync.idx` hands the results to
@@ -49,12 +50,16 @@ Emmy is used only to load the IR (`Graph.from_dict`). The IR-to-PTX lowering is 
    the induction variable as a constant or `i + k*step`. Otherwise it becomes a bottom-tested
    loop.
 
+**PTX comments.** Generated PTX includes source-oriented comments by default. Set
+`KERNELC_COMMENTS=0` for production submissions to make the PTX smaller and reduce
+assembler parsing work; this does not change the emitted instructions.
+
 ## Statement mapping
 
 | IR | PTX |
 |---|---|
 | `Load` / `Write` | `ld/st.global` or `.shared`; 2/4-wide groups become `.v2/.v4`; constant offsets go into the address immediate |
-| `Write(atomic)` | `red.global.add.f32` |
+| `Write(atomic)` | `red.global.add.<dtype>` |
 | `Assign`, `Let`, `Select`, `Init` | `mathlib` / `Arith`; `.rn` on every float op, so `ptxas` never contracts `mul`+`add` and results match numpy bit for bit (except under fast math, below) |
 | `Accum` | updates the accumulator register in place; `acc += a*b` becomes one `fma.rn.f32` |
 | `Cond` | `setp` + `@!p bra`; a condition that folds to a constant compiles only the branch taken |

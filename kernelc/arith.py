@@ -44,6 +44,11 @@ def _wrap32(n: int) -> int:
     return n - (1 << 32) if n & 0x80000000 else n
 
 
+def _wrap64(n: int) -> int:
+    n &= 0xFFFFFFFFFFFFFFFF
+    return n - (1 << 64) if n & 0x8000000000000000 else n
+
+
 class Arith:
     def __init__(self, em: Emitter, fast_math: bool = False) -> None:
         self.em = em
@@ -86,8 +91,10 @@ class Arith:
 
     # -------------------------------------------------------------- conversions
     def convert(self, v: Val, ty: str) -> Val:
-        if v.ty == ty or (v.ty in ("s32", "u32") and ty in ("s32", "u32")) or (v.ty in ("s64", "u64") and ty in ("s64", "u64")):
-            return v if v.ty == ty else Val(v.text, ty, v.const)
+        if v.ty == ty:
+            return v
+        if (v.ty in ("s32", "u32") and ty in ("s32", "u32")) or (v.ty in ("s64", "u64") and ty in ("s64", "u64")):
+            return imm_int(int(v.const), ty) if v.is_const else Val(v.text, ty)
         if v.is_const:
             if ty == "f32":
                 return imm_f32(float(v.const))
@@ -98,10 +105,10 @@ class Arith:
             if ty in INT_TYPES:
                 return imm_int(int(v.const), ty)
         if v.ty == "pred":
-            one = imm_f32(1.0) if ty == "f32" else imm_int(1, ty)
-            zero = imm_f32(0.0) if ty == "f32" else imm_int(0, ty)
+            one = self.const(1, ty)
+            zero = self.const(0, ty)
             r = self.reg(ty)
-            self.em.ins(f"selp.{_bits(ty) if ty != 'f32' else 'f32'}", r.text, one.text, zero.text, v.text)
+            self.em.ins(f"selp.{_bits(ty)}", r.text, one.text, zero.text, v.text)
             return r
         if ty == "pred":
             return self.cmp("!=", v, self.const(0, v.ty))
@@ -130,8 +137,12 @@ class Arith:
             ty = "f64"
         elif "f32" in (a.ty, b.ty):
             ty = "f32"
-        elif "s64" in (a.ty, b.ty) or "u64" in (a.ty, b.ty):
+        elif "u64" in (a.ty, b.ty):
+            ty = "u64"
+        elif "s64" in (a.ty, b.ty):
             ty = "s64"
+        elif "u32" in (a.ty, b.ty):
+            ty = "u32"
         else:
             ty = "s32"
         return self.convert(a, ty), self.convert(b, ty), ty
@@ -168,7 +179,15 @@ class Arith:
                 "min": lambda: min(x, y),
                 "max": lambda: max(x, y),
             }[op]()
-            return imm_int(_wrap32(folded) if ty in ("s32", "u32") else folded, ty)
+            if ty == "s32":
+                folded = _wrap32(folded)
+            elif ty == "s64":
+                folded = _wrap64(folded)
+            elif ty == "u32":
+                folded &= 0xFFFFFFFF
+            elif ty == "u64":
+                folded &= 0xFFFFFFFFFFFFFFFF
+            return imm_int(folded, ty)
         # algebraic identities
         if op == "+":
             if a.const == 0:
@@ -194,8 +213,8 @@ class Arith:
             a, b = b, a  # keep the immediate in the second slot
         a = self.materialize(a)
         r = self.reg(ty)
-        sty = "s64" if ty in ("s64", "u64") else "s32"
-        bty = "b64" if sty == "s64" else "b32"
+        sty = ty
+        bty = "b64" if ty in ("s64", "u64") else "b32"
         opcode = {
             "+": f"add.{sty}",
             "-": f"sub.{sty}",
@@ -390,7 +409,7 @@ class Arith:
         if a.is_const and b.is_const and a.const == b.const:
             return a
         r = self.reg(ty)
-        self.em.ins(f"selp.{'f32' if ty == 'f32' else _bits(ty)}", r.text, a.text, b.text, cond.text)
+        self.em.ins(f"selp.{_bits(ty)}", r.text, a.text, b.text, cond.text)
         return r
 
 

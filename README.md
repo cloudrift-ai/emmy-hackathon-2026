@@ -13,7 +13,7 @@ your PTX with `ptxas`, executes it on real hardware, and tells you whether the o
 - **Python 3.12 or newer.** The Kernel IR only deserializes through Emmy's own classes:
 
   ```bash
-  pip install emmy-ml==0.3.11       # no torch, no CUDA, no GPU needed
+  python -m pip install -r requirements.txt  # no torch, no CUDA, no GPU needed
   ```
 
   This alone reads every problem IR. Torch is **not** needed — it is only required to
@@ -32,7 +32,7 @@ your PTX with `ptxas`, executes it on real hardware, and tells you whether the o
 
 ```bash
 git clone https://github.com/cloudrift-ai/emmy-hackathon-2026 && cd emmy-hackathon-2026
-pip install emmy-ml==0.3.11 numpy requests   # no torch needed
+python -m pip install -r requirements.txt    # no torch needed
 python submit.py r01_array_sum examples/k_sum_1_reduce.ptx    # see a pass
 python submit.py p00_scalar_add examples/k_sum_1_reduce.ptx   # wrong entry: a clean failure
 python submit.py p00_scalar_add --compiler compile.py         # your compiler, once you have one

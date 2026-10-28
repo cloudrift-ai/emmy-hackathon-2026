@@ -27,6 +27,9 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from kernelc.validation import result_array  # noqa: E402
 
 
 def post(server: str, path: str, body: dict) -> dict:
@@ -86,8 +89,11 @@ def run_problem(server: str, pdir: Path, kernels: list, warmup: int, iters: int,
         for name, out in r["outputs"].items():
             produced[name] = out["values"]
             if name in expected:
-                got = np.array(out["values"], dtype=np.float32).reshape(expected[name].shape)
-                ok &= bool(np.allclose(got, expected[name], rtol=meta["rtol"], atol=meta["atol"]))
+                ref = expected[name]
+                # Benchmark correctness checks must use the kernel's result
+                # dtype too; f64 and i64 cannot be faithfully narrowed to f32.
+                got = result_array(out["values"], ref)
+                ok &= bool(np.allclose(got, ref, rtol=meta["rtol"], atol=meta["atol"]))
     return total, ok
 
 

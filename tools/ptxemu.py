@@ -187,6 +187,12 @@ class Machine:
         if op.startswith("0f"):
             v = np.array([int(op[2:], 16)], dtype=np.uint32).view(np.float32)[0]
             return np.full(idx.size, v, dtype=np.float32).astype(tgt) if tgt is not np.float32 else np.full(idx.size, v, np.float32)
+        if op.startswith("0d"):
+            bits = np.array([int(op[2:], 16)], dtype=np.uint64)
+            if np.dtype(tgt).itemsize == 8 and tgt is not np.bool_:
+                return np.full(idx.size, bits[0], dtype=np.uint64).view(tgt)
+            v = bits.view(np.float64)[0]
+            return np.full(idx.size, v, dtype=np.float64).astype(tgt)
         if op in self.k.shared:
             return np.full(idx.size, self.k.shared[op], dtype=tgt)
         if op in self.param_vals:
