@@ -1,0 +1,130 @@
+.version 8.0
+.target sm_89
+.address_size 64
+
+.shared .align 4 .b8 acc0_smem[16];
+
+.visible .entry k_sum_1_reduce(
+        .param .u64 param_x,
+        .param .u64 param_sum_1
+)
+{
+        .reg .b32       %r<17>;
+        .reg .pred       %p<5>;
+        .reg .f32       %f<19>;
+        .reg .b64       %rd<26>;
+
+        ld.param.u64 %rd0, [param_x];
+        cvta.to.global.u64 %rd1, %rd0; 
+
+        ld.param.u64 %rd2, [param_sum_1];
+        cvta.to.global.u64 %rd3, %rd2; 
+
+        mov.u32 %r0, %tid.x;
+        mov.u32 %r1, %ctaid.x;
+        mov.u32 %r2, %ntid.x;
+        mad.lo.u32 %r3, %r2, %r1, %r0; 
+
+        and.b32 %r4, %r0, 31;
+        shr.u32 %r5, %r0, 5; 
+
+        rem.u32 %r6, %r3, 128;
+        div.u32 %r7, %r3, 128;
+        
+
+
+        mov.f32 %f0, 0f00000000;
+        mov.u32 %r8, %r6;
+        mov.u32 %r9, 128;
+TOP_0:
+        setp.ge.u32 %p0, %r8, 512;
+        @%p0 bra END_0;
+        mul.lo.u32 %r10, %r7, 512;
+        add.u32 %r11, %r10, %r8;
+        mul.wide.u32 %rd4, %r11, 4;
+        add.s64 %rd5, %rd1, %rd4;
+        ld.global.f32 %f1, [%rd5];
+        add.f32 %f0, %f0, %f1;
+        add.u32 %r8, %r8, %r9;
+        bra TOP_0;
+END_0:
+
+
+        shfl.sync.bfly.b32 %f2, %f0, 16, 0x1f, 0xffffffff;
+        add.f32 %f3, %f0, %f2;
+        shfl.sync.bfly.b32 %f4, %f3, 8, 0x1f, 0xffffffff;
+        add.f32 %f5, %f3, %f4;
+        shfl.sync.bfly.b32 %f6, %f5, 4, 0x1f, 0xffffffff;
+        add.f32 %f7, %f5, %f6;
+        shfl.sync.bfly.b32 %f8, %f7, 2, 0x1f, 0xffffffff;
+        add.f32 %f9, %f7, %f8;
+        shfl.sync.bfly.b32 %f10, %f9, 1, 0x1f, 0xffffffff;
+        add.f32 %f11, %f9, %f10;
+
+
+
+
+        mov.u32 %r12, 0;
+        setp.eq.s32 %p1, %r4, %r12;
+        @!%p1 bra ELSE_1;
+        mul.wide.u32 %rd6, %r5, 4;
+        mov.u64 %rd7, acc0_smem;
+        add.s64 %rd8, %rd7, %rd6;
+        st.shared.f32 [%rd8], %f11;
+        bra END_1;
+ELSE_1:
+END_1:
+
+
+        bar.sync 0;
+
+
+        setp.ge.u32 %p2, %r5, 2;
+        @%p2 bra TREE_SKIP_2;
+        add.u32 %r13, %r5, 2;
+        mul.wide.u32 %rd9, %r5, 4;
+        mov.u64 %rd10, acc0_smem;
+        add.s64 %rd11, %rd10, %rd9;
+        ld.shared.f32 %f12, [%rd11];
+        mul.wide.u32 %rd12, %r13, 4;
+        mov.u64 %rd13, acc0_smem;
+        add.s64 %rd14, %rd13, %rd12;
+        ld.shared.f32 %f13, [%rd14];
+        add.f32 %f14, %f12, %f13;
+        st.shared.f32 [%rd11], %f14;
+TREE_SKIP_2:
+        bar.sync 0;
+        setp.ge.u32 %p3, %r5, 1;
+        @%p3 bra TREE_SKIP_3;
+        add.u32 %r14, %r5, 1;
+        mul.wide.u32 %rd15, %r5, 4;
+        mov.u64 %rd16, acc0_smem;
+        add.s64 %rd17, %rd16, %rd15;
+        ld.shared.f32 %f15, [%rd17];
+        mul.wide.u32 %rd18, %r14, 4;
+        mov.u64 %rd19, acc0_smem;
+        add.s64 %rd20, %rd19, %rd18;
+        ld.shared.f32 %f16, [%rd20];
+        add.f32 %f17, %f15, %f16;
+        st.shared.f32 [%rd17], %f17;
+TREE_SKIP_3:
+        bar.sync 0;
+        mov.u32 %r15, 0;
+        mul.wide.u32 %rd21, %r15, 4;
+        mov.u64 %rd22, acc0_smem;
+        add.s64 %rd23, %rd22, %rd21;
+        ld.shared.f32 %f18, [%rd23];
+
+
+        mov.u32 %r16, 0;
+        setp.eq.s32 %p4, %r6, %r16;
+        @!%p4 bra ELSE_4;
+        mul.wide.u32 %rd24, %r7, 4;
+        add.s64 %rd25, %rd3, %rd24;
+        st.global.f32 [%rd25], %f18;
+        bra END_4;
+ELSE_4:
+END_4:
+DONE:
+        ret;
+}

@@ -3,10 +3,11 @@ __launch_bounds__(128) void k_sum_1_reduce(const float* x, float* sum_1) {
     int lane = threadIdx.x & 31;
     int warp = threadIdx.x >> 5;
     int _gid = blockIdx.x * blockDim.x + threadIdx.x;
-        int a0 = _gid / 128;
-        int a1_co = (_gid) % 128;
+    // _gid = 0...(64*128-1=8192)
+        int a0 = _gid / 128; //64 possible
+        int a1_co = (_gid) % 128; //128 possible
         float acc0 = 0.0f;
-        for (int a1 = a1_co; a1 < 512; a1 += 128) {
+        for (int a1 = a1_co; a1 < 512; a1 += 128) { //loops over 4 times
             float in0 = x[a0 * 512 + a1];
             acc0 += in0;
         }
